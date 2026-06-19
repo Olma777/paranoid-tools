@@ -12,7 +12,7 @@ North-star и спеки: `securetrash/ECOSYSTEM.md`.
 |---|------------|-------------------|--------|------|
 | 1 | `securetrash` | хранить (vault) + уничтожить | ✅ v0.4.0 released | Di-kairos/securetrash |
 | 2 | `vaultwatch`  | защитить, пока vault открыт | ✅ v0.1.0 released | Di-kairos/vaultwatch |
-| 3 | `panic`       | мгновенно спрятать по тревоге | спека | — |
+| 3 | `panic`       | мгновенно спрятать по тревоге | 🚧 1 scaffold | Di-kairos/panic (private) |
 | 4 | `ghostdraft`  | написать/просмотреть без следов | спека | — |
 | 5 | `seedsplit`   | распределить (Shamir/SLIP-39) | идея (опц.) | — |
 
