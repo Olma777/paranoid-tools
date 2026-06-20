@@ -32,13 +32,11 @@ root-PROGRESS.md нет, состояние — по репо.
 - Финал: 2 независимых прогона тестов + перепроверка (shellcheck/vendor/флаги/крипта
   round-trip/reinstall) — всё зелёное.
 
-## ⚠ Два gated-пункта (требуют действий Mr. Di)
+## Статус gated-пунктов
 
-1. **seedsplit CI/release workflow** — `.github/workflows/ci.yml` лежит локально untracked,
-   `release.yml` ещё нет. Их push требует `workflow`-scope токена. Доделать:
-   `gh auth refresh -s workflow` **в обычном терминале** (не через `!`), затем
-   закоммитить ci.yml (+ добавить release.yml по образцу panic) и push. Пока CI-бейдж в
-   seedsplit README без статуса — оживёт после этого.
+1. **seedsplit CI/release workflow — ЗАКРЫТО ✓.** Токен получил `workflow`-scope,
+   `ci.yml` + `release.yml` закоммичены и запушены. CI прогон зелёный. Теперь у всех 5
+   репо CI = completed success.
 2. **Публикация (этап 2)** — репо ghostdraft/seedsplit пока **private**. Делать public
    ТОЛЬКО по явному согласию Mr. Di (см. память [[publication-gate]]). После публикации:
    создать общий Homebrew-tap (`Di-kairos/homebrew-tap`) и перепроверить sha256 формул
