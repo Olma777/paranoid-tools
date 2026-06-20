@@ -1,63 +1,55 @@
 # HANDOFF — paranoid-tools
 
-Точка передачи между машинами (work Mac Mini → home Air). При «Продолжаем работу»
-читать этот файл первым: умбрелла-папка, root-PROGRESS.md нет, состояние — по репо.
+Точка передачи между машинами. При «Продолжаем работу» читать первым: умбрелла-папка,
+root-PROGRESS.md нет, состояние — по репо.
 
-## Снимок на закрытие сессии (2026-06-19, сессия 2)
+## Снимок (2026-06-20, сессия 3 — max polish)
 
-| Репо | HEAD (локально) | Тег | Тесты | Состояние |
-|------|------|-----|-------|-----------|
-| `paranoid-tools` (umbrella) | `e283ec5` | — | — | pushed ✓ |
-| `securetrash` | `bf4ceee` | v0.4.0 | bats | released; CHANGELOG добавлен, pushed ✓ |
-| `vaultwatch` | — | v0.1.0 | — | released |
-| `panic` | — | v0.1.0 | — | released |
-| `ghostdraft` | `cd9937e` | v0.1.0 | bats 21/21 | released, pushed ✓ |
-| `seedsplit` | `cd49632` | — (ядро v0.2.0) | bats 27/27 | ядро готово, **pushed ✓** (без ci.yml) |
+| Репо | HEAD | Тег/Release | Тесты | Публикационная готовность |
+|------|------|------|-------|-----------|
+| `paranoid-tools` (umbrella) | pushed ✓ | — | — | EN README + README.ru + LICENSE ✓ |
+| `securetrash` | `42f8129` | v0.4.0 ✓ | bats 59/59 | эталон — полная обвязка ✓ |
+| `vaultwatch` | `e33c962` | v0.1.0 ✓ | bats 50/50 | полная обвязка ✓ |
+| `panic` | `46fe075` | v0.1.0 ✓ | bats 24/24 | полная обвязка ✓ |
+| `ghostdraft` | `1347a1a` | v0.1.0 ✓ | bats 25/25 | полная обвязка ✓ |
+| `seedsplit` | `cf5a1a4` | v0.2.0 ✓ (release вручную) | bats 31/31 | полная обвязка ✓ (CI отложен) |
 
-Экосистема: **5/5 функциональны и на GitHub** (seedsplit получил рабочее ядро + залит в этой сессии).
+**Итог: bats 189/189 зелёных, shellcheck clean ×5, vendor sync.** Все 5 репо приведены
+к публикационному качеству (кроме двух gated-пунктов ниже).
 
-## Что сделано в этой сессии (сессия 2)
+## Что сделано в сессии 3 (max polish)
 
-1. **Умбрелла-установщик `install.sh`** — ставит все 5 тулов из рабочей копии X10 в
-   `~/.local/bin` одной командой (для личного использования; per-tool install.sh —
-   для публичных релизов). `--uninstall` поддержан.
-2. **`КАК-ПОЛЬЗОВАТЬСЯ.ru.md`** — практический русский гайд: по каждому тулу что/когда/пример.
-3. **seedsplit pack 2 — ядро Shamir над GF(256)** (главное): `split`/`combine` на чистом
-   Bash, без зависимостей. log/antilog таблицы (g=3, поли 0x11b), Горнер для split,
-   Лагранж-в-нуле для combine (веса считаются один раз). Формат доли `SSS1-T-x-Y-chk`
-   (chk ловит опечатку доли), обёртка секрета `0x55|len|secret|crc` (combine либо вернёт
-   точный секрет, либо честный отказ при порче/чужом наборе). Ввод секрета stdin/--file.
-   27/27 bats, shellcheck clean, VERSION 0.2.0. Боевой smoke: 12-словная seed 3-of-5 ✓.
-4. **seedsplit `install.sh`** — release-installer для паритета (не было).
-5. **securetrash `CHANGELOG.md`** — реконструирован из тегов v0.1.0..v0.4.0 (паритет-гэп).
+Аудит 6 репо (workflow) → punch-list → паки (каждый — параллельный workflow):
+- **Pack A:** `-v/--version` + `-h/--help` флаги + bats-тесты во всех 5 тулах.
+- **Pack B:** LICENSE + SECURITY.md + CONTRIBUTING.md в vaultwatch/panic/ghostdraft/seedsplit
+  (адаптированы под функцию) + umbrella LICENSE.
+- **Pack C:** English-primary README.md + README.ru.md во всех 4 тулах + umbrella;
+  seedsplit README исправлен от вранья «scaffold» → честный v0.2.0.
+- **Pack D:** seedsplit release — CHANGELOG.md, тег `v0.2.0`, Release с verified-ассетами
+  (seedsplit + install.sh + SHA256SUMS), создан вручную через `gh` (без workflow-scope).
+- **Pack E:** Homebrew `Formula/<tool>.rb` для 4 тулов (source-tarball, sha256 сверен с
+  релизным tarball; securetrash Formula перепроверена — sha сходится).
+- Финал: 2 независимых прогона тестов + перепроверка (shellcheck/vendor/флаги/крипта
+  round-trip/reinstall) — всё зелёное.
 
-## seedsplit push — РЕШЕНО (ci.yml отложен)
+## ⚠ Два gated-пункта (требуют действий Mr. Di)
 
-seedsplit залит в `Di-kairos/seedsplit` (main = `cd49632`). Историю пересобрали единым
-чистым коммитом БЕЗ `.github/workflows/ci.yml` (ветка-сирота → push в main), т.к. токен
-без `workflow`-scope (`gist, read:org, repo`) и GitHub отклонял любой коммит, добавляющий
-workflow. `ci.yml` лежит локально (untracked, `seedsplit/.github/workflows/ci.yml`) —
-сохранён, на код не влияет.
+1. **seedsplit CI/release workflow** — `.github/workflows/ci.yml` лежит локально untracked,
+   `release.yml` ещё нет. Их push требует `workflow`-scope токена. Доделать:
+   `gh auth refresh -s workflow` **в обычном терминале** (не через `!`), затем
+   закоммитить ci.yml (+ добавить release.yml по образцу panic) и push. Пока CI-бейдж в
+   seedsplit README без статуса — оживёт после этого.
+2. **Публикация (этап 2)** — репо ghostdraft/seedsplit пока **private**. Делать public
+   ТОЛЬКО по явному согласию Mr. Di (см. память [[publication-gate]]). После публикации:
+   создать общий Homebrew-tap (`Di-kairos/homebrew-tap`) и перепроверить sha256 формул
+   против публичных tarball'ов (стандартный publish-time шаг).
 
-### Остаток по seedsplit (когда будет workflow-scope)
-`gh auth refresh -s workflow` **в НАСТОЯЩЕМ терминале** (device-flow в `!`-контексте Claude
-не завершается), затем добавить CI отдельным коммитом:
-```bash
-cd "/Volumes/X10 Pro/projects/paranoid-tools/seedsplit"
-git add .github/workflows/ci.yml && git commit -m "ci: add workflow"
-git push origin main             # уедет ci.yml; CI станет green
-```
-Также: тег `v0.2.0` + Release (release.yml уже в репо).
+## Открытые вопросы (этап 2)
 
-## Следующие паки (бэклог)
-
-- **seedsplit:** тег v0.2.0 + Release; опционально SLIP-39-совместимость (отдельный объём).
-- **ECOSYSTEM §7:** единый `check`-движок, единый бренд вывода для всех тулов.
-- **graphify (§15):** инициализировать `graphify-out` у ghostdraft/panic/seedsplit →
-  богаче merged cross-repo граф.
-- Мелочь: `--version`/`--help` алиасы к `version`/usage (сейчас работает `version`-сабкоманда).
+- **Монетизация** не решена (память [[monetization-open]]): платные фичи vs донат —
+  отдельный брейншторм при маркетинговом раскрытии.
 
 ## Vendoring pin (общий)
 
-Все тулы вендорят `securetrash/lib/common.sh` pin `2e3d2dd` (SHA256 `fdfb0e3c…af75`).
-`tools/vendor-common.sh --check` ловит дрейф в CI. seedsplit-ядро проверено — sync ✓.
+Все тулы вендорят `securetrash/lib/common.sh` pin `2e3d2dd`. `tools/vendor-common.sh
+--check` ловит дрейф — sync во всех 4 ✓.
