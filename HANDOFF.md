@@ -4,24 +4,24 @@
 root-PROGRESS.md нет, состояние — по репо. Всё закоммичено и **запушено** (рабочие деревья
 чистые); на другой машине поднимается с GitHub + X10.
 
-## Снимок (2026-06-21, конец сессии 3 — аудит-driven polish, В ПРОЦЕССЕ)
+## Снимок (2026-06-22, сессия 4 — Блоки 1+2 ЗАВЕРШЕНЫ, релизы перевыпущены+подписаны)
 
 | Репо | HEAD | VERSION | Latest tag/Release | bats | CI |
 |------|------|---------|--------------------|------|-----|
-| umbrella | `39265f6` | — | — | — | — |
-| securetrash | `32d3c6b` | 0.4.0 | v0.4.0 | 59/59 | ✅ |
-| vaultwatch | `0145699` | 0.1.0 | v0.1.0 | 50/50 | ✅ |
-| panic | `6673d65` | 0.1.0 | v0.1.0 | 24/24 | ✅ |
-| ghostdraft | `e5c5d5e` | 0.1.0 | v0.1.0 | 26/26 | ✅ |
-| seedsplit | `4ee148f` | **0.3.0** | v0.2.0 ⚠ | 37/37 | ✅ |
+| umbrella | `<this commit>` | — | — | — | — |
+| securetrash | `0f6fa86` | 0.4.1 | v0.4.1 ✅подписан | 59/59 | ✅ |
+| vaultwatch | `867f4de` | 0.1.1 | v0.1.1 ✅подписан | 50/50 | ✅ |
+| panic | `c555af8` | 0.1.1 | v0.1.1 ✅подписан | 24/24 | ✅ |
+| ghostdraft | `1868c7e` | 0.1.1 | v0.1.1 ✅подписан | 26/26 | ✅ |
+| seedsplit | `c1c964f` | **0.3.0** | v0.3.0 ✅подписан | 37/37 | ✅ |
 
 Все 5 репо **PRIVATE**. CI зелёный у всех. Всего bats 196/196.
 Снимок tool/repo/tag/commit/status — в `MANIFEST.md` (convenience, не lock-файл).
 
-⚠ **Release drift (ожидаемый, чинится в release-блоке В КОНЦЕ):** у ВСЕХ тулов HEAD
-впереди последнего тега (post-tag правки: флаги, legal, EN-README, vendor-fix; seedsplit —
-ещё и крипта 0.3.0). Релизные артефакты пока НЕ равны коду. Это пункт №1 плана — закрывается
-в самом конце (bump версий + ретег + пере-нарезка релизов).
+✅ **Release drift ЗАКРЫТ:** все тулы перевыпущены — bump версий → CHANGELOG → теги →
+релизы собраны и **подписаны** Ed25519 (`SHA256SUMS.sig`, подпись провалидирована
+end-to-end) → `sha256` в формулах пере-синкнут под новые tarball'ы. HEAD = тег + один
+`chore(formula)`-коммит (формула коммитится после тега — норма). Артефакты = коду.
 
 ## Контекст: работаем по 2 аудитам (оба прочитаны, план согласован)
 
@@ -72,18 +72,12 @@ passphrase-слой, decoy-vault, новые тулы — в roadmap). Locked-р
   `RELEASE_SIGNING_KEY` (скип, если секрета нет → релиз остаётся checksum-verified);
   install.sh авто-verify `.sig` против вшитого pubkey (мягкая деградация); SECURITY.md —
   секция + опубликованный pubkey. Ключ выдан: `releases@paranoid-tools`, pubkey
-  `ssh-ed25519 AAAA…scn2U`. Roundtrip sign/verify проверен локально (tamper отвергается).
-  **Чтобы подпись ЗАРАБОТАЛА на релизах — Mr. Di доделать шаги 3-4 ниже** (GH-секрет +
-  бэкап ключа); до этого релизы остаются checksum-verified (как раньше), ничего не сломано.
+  `ssh-ed25519 AAAA…scn2U`. **GH-секрет `RELEASE_SIGNING_KEY` залит во все 5 репо** (сессия 4)
+  → релизы v0.4.1/v0.1.1/v0.3.0 подписаны, подпись провалидирована end-to-end. Signing LIVE.
 
-### ⚠ Осталось Mr. Di (шаги 3-4 — ключ УЖЕ сгенерён, pubkey вшит)
+### ⚠ Осталось Mr. Di — ТОЛЬКО шаг 4 (бэкап ключа; шаг 3 секрет УЖЕ залит)
 
 ```bash
-# 3) Залить ПРИВАТНЫЙ ключ в GH Secrets всех 5 репо (после этого новые релизы подписываются):
-for r in securetrash vaultwatch panic ghostdraft seedsplit; do
-  gh secret set RELEASE_SIGNING_KEY --repo "Di-kairos/$r" < ~/paranoid-release-key
-done
-
 # 4) Офлайн-бэкап приватного ключа в vault, затем стереть с диска (pub оставить — публичный):
 securetrash vault open
 cp ~/paranoid-release-key "/Volumes/SecretVault/paranoid-release-key"
@@ -91,13 +85,11 @@ securetrash vault close
 securetrash shred ~/paranoid-release-key
 ```
 
-**В САМОМ КОНЦЕ — release-блок (иначе drift вернётся):**
-- [ ] bump версий: securetrash 0.4.1, vaultwatch/panic/ghostdraft 0.1.1, seedsplit уже 0.3.0.
-- [ ] CHANGELOG [Unreleased]→версия у каждого; тег `vX.Y.Z` → `release.yml` нарежет релиз.
-- [ ] **ПЕРЕ-СИНК `sha256` в каждой `Formula/<tool>.rb`** против НОВОГО release-tarball
-  (иначе `brew install` отвалится checksum mismatch). Метод проверки sha (private repo):
-  `curl -sL -H "Authorization: token $(gh auth token)" https://github.com/Di-kairos/<t>/archive/refs/tags/vX.Y.Z.tar.gz | shasum -a 256`.
-- [ ] Обновить umbrella `MANIFEST` под новые теги/SHA.
+**Release-блок — ЗАКРЫТ (сессия 4):**
+- [x] bump версий: securetrash 0.4.1, vaultwatch/panic/ghostdraft 0.1.1, seedsplit 0.3.0.
+- [x] CHANGELOG [Unreleased]→версия у каждого; теги запушены → `release.yml` собрал+подписал релизы.
+- [x] пере-синк `sha256` в `Formula/*.rb` против новых tarball'ов (5 коммитов `chore(formula)`).
+- [x] umbrella `MANIFEST` обновлён под новые теги/SHA + секция signing.
 
 ## Прочее
 - Память проекта на X10: `.claude/memory/` (publication-gate, monetization-open). Симлинк

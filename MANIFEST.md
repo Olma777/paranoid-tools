@@ -9,24 +9,31 @@
 > и тег. Рассинхрон этой таблицы с реальными HEAD не ломает сборку/установку ни одного тула —
 > он лишь означает, что снимок устарел. Обновлять при закрытии сессии вместе с `HANDOFF.md`.
 
-Обновлено: 2026-06-22.
+Обновлено: 2026-06-22 (release-блок закрыт — все тулы перевыпущены + подписаны).
 
 | Tool | Repo | Tag (release) | HEAD commit | Version | Статус |
 |------|------|---------------|-------------|---------|--------|
-| securetrash | `Di-kairos/securetrash` | `v0.4.0` | `4d4b147` | 0.4.0 | CI ✅ · HEAD впереди тега (post-tag правки) |
-| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.0` | `0145699` | 0.1.0 | CI ✅ · HEAD впереди тега |
-| panic       | `Di-kairos/panic`       | `v0.1.0` | `6673d65` | 0.1.0 | CI ✅ · HEAD впереди тега |
-| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.0` | `e5c5d5e` | 0.1.0 | CI ✅ · HEAD впереди тега |
-| seedsplit   | `Di-kairos/seedsplit`   | `v0.2.0` | `4ee148f` | **0.3.0** | CI ✅ · HEAD впереди тега (крипта 0.3.0 + i18n) |
+| securetrash | `Di-kairos/securetrash` | `v0.4.1` | `0f6fa86` | 0.4.1 | CI ✅ · Release подписан ✅ |
+| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.1` | `867f4de` | 0.1.1 | CI ✅ · Release подписан ✅ |
+| panic       | `Di-kairos/panic`       | `v0.1.1` | `c555af8` | 0.1.1 | CI ✅ · Release подписан ✅ |
+| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.1` | `1868c7e` | 0.1.1 | CI ✅ · Release подписан ✅ |
+| seedsplit   | `Di-kairos/seedsplit`   | `v0.3.0` | `c1c964f` | **0.3.0** | CI ✅ · Release подписан ✅ |
 
 Все пять репозиториев **private**. Делать public — только по явному согласию (этап 2 = маркетинг).
 
-## Release drift (ожидаемый)
+## Release drift — закрыт
 
-У всех тулов HEAD впереди последнего тега — это осознанное состояние: post-tag правки (флаги,
-legal/wording, EN-README, vendor-offline fix, seedsplit-крипта 0.3.0 + i18n) накоплены и будут
-нарезаны в релизы в финальном release-блоке (bump версий → CHANGELOG → теги → пере-синк sha256
-в `Formula/*.rb` против новых tarball'ов). Подробности и порядок — в `HANDOFF.md`.
+Все тулы перевыпущены (2026-06-22): bump версий → CHANGELOG → теги → релизы собраны и
+**подписаны** Ed25519-ключом (`SHA256SUMS.sig`, подпись провалидирована end-to-end) →
+`sha256` в `Formula/*.rb` пере-синкнут под новые tarball'ы. HEAD каждого тула = тег + один
+`chore(formula)`-коммит (формула всегда коммитится ПОСЛЕ тега — это норма, не дрейф).
+Релизные артефакты соответствуют коду.
+
+## Release signing
+
+Все 5 тулов подписывают `SHA256SUMS` ключом `releases@paranoid-tools` (Ed25519); pubkey
+`ssh-ed25519 …scn2U` опубликован в каждом `SECURITY.md`, вшит в `install.sh` (авто-verify).
+Приватный ключ — в GH Secrets (`RELEASE_SIGNING_KEY`) + офлайн-бэкап в securetrash vault.
 
 ## Vendoring pin
 
