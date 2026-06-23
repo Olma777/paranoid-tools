@@ -16,7 +16,8 @@ root-PROGRESS.md нет, состояние — по репо. Всё заком
 | seedsplit | `c1c964f` | **0.3.0** | v0.3.0 ✅подписан | 37/37 | ✅ |
 
 Все 5 репо **PRIVATE**. CI зелёный у всех. Всего bats 196/196.
-Снимок tool/repo/tag/commit/status — в `MANIFEST.md` (convenience, не lock-файл).
+Снимок tool/repo/tag/commit/status — в `RELEASE-STATE.md` (convenience, не lock-файл;
+бывш. `MANIFEST.md`, переименован — теперь `MANIFEST.md` = манифест движения).
 
 ✅ **Release drift ЗАКРЫТ:** все тулы перевыпущены — bump версий → CHANGELOG → теги →
 релизы собраны и **подписаны** Ed25519 (`SHA256SUMS.sig`, подпись провалидирована

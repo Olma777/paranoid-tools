@@ -13,7 +13,7 @@ limits of what it can guarantee.
 
 | # | Tool | Step in a secret's life | Status |
 |---|------|-------------------------|--------|
-| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store (encrypted vault) + destroy | v0.4.0 |
+| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store (encrypted vault) + destroy | v0.4.2 |
 | 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard an open vault | v0.1.0 |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | hide & lock everything, instantly | v0.1.0 |
 | 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | v0.1.0 |

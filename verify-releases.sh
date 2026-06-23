@@ -33,4 +33,8 @@ for spec in securetrash:v0.4.1 vaultwatch:v0.1.1 panic:v0.1.1 ghostdraft:v0.1.1 
 done
 
 printf '\nИтог: \033[32m%d ✓\033[0m  \033[31m%d ✗\033[0m\n' "$PASS" "$FAIL"
-[[ "$FAIL" -eq 0 ]] && echo "Все релизы подписаны корректно." || { echo "Есть проблемы — см. ✗."; exit 1; }
+if [[ "$FAIL" -eq 0 ]]; then
+  echo "Все релизы подписаны корректно."
+else
+  echo "Есть проблемы — см. ✗."; exit 1
+fi

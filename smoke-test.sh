@@ -38,8 +38,8 @@ secret="smoke-secret-$$"
 shares="$(printf '%s' "$secret" | tool seedsplit split -n 3 -t 2 2>/dev/null)"
 if [[ "$(printf '%s\n' "$shares" | grep -c '^SSS2-')" -eq 3 ]]; then ok "split → 3 доли"; else bad "split не дал 3 доли"; fi
 rec="$(printf '%s\n' "$shares" | sed -n '1p;3p' | tool seedsplit combine 2>/dev/null)"
-[[ "$rec" == "$secret" ]] && ok "combine(1,3) восстановил секрет" || bad "combine не восстановил секрет"
-printf '%s\n' "$shares" | sed -n '2p;3p' | tool seedsplit verify >/dev/null 2>&1 && ok "verify подтвердил восстановимость" || bad "verify не прошёл"
+if [[ "$rec" == "$secret" ]]; then ok "combine(1,3) восстановил секрет"; else bad "combine не восстановил секрет"; fi
+if printf '%s\n' "$shares" | sed -n '2p;3p' | tool seedsplit verify >/dev/null 2>&1; then ok "verify подтвердил восстановимость"; else bad "verify не прошёл"; fi
 # подмена одной доли → combine должен отказать (а не молча вернуть мусор)
 badshare="$(printf '%s\n' "$shares" | sed -n '1p' | sed 's/-\([0-9a-f]\)/-X/2')"
 if printf '%s\n%s\n' "$badshare" "$(printf '%s\n' "$shares" | sed -n '2p')" | tool seedsplit combine >/dev/null 2>&1; then
@@ -48,10 +48,10 @@ if printf '%s\n%s\n' "$badshare" "$(printf '%s\n' "$shares" | sed -n '2p')" | to
 # --- 3. ghostdraft: pipe (без записи на диск) + new в temp-каталоге ---
 head "3. ghostdraft (pipe + ephemeral draft)"
 out="$(printf 'a\nb\n' | tool ghostdraft pipe 2>/dev/null)"
-[[ "$out" == $'a\nb' ]] && ok "pipe пробросил stdin без записи на диск" || bad "pipe исказил ввод"
+if [[ "$out" == $'a\nb' ]]; then ok "pipe пробросил stdin без записи на диск"; else bad "pipe исказил ввод"; fi
 gtmp="$(mktemp -d)"
 if GHOSTDRAFT_DIR="$gtmp" EDITOR=true tool ghostdraft new >/dev/null 2>&1; then
-  [[ -z "$(ls -A "$gtmp" 2>/dev/null)" ]] && ok "new создал и стёр черновик (каталог пуст)" || bad "new оставил файлы в каталоге"
+  if [[ -z "$(ls -A "$gtmp" 2>/dev/null)" ]]; then ok "new создал и стёр черновик (каталог пуст)"; else bad "new оставил файлы в каталоге"; fi
 else skip "new (нужен интерактивный \$EDITOR — см. TESTING.md)"; fi
 rm -rf "$gtmp"
 
@@ -59,7 +59,7 @@ rm -rf "$gtmp"
 head "4. securetrash shred (песочница)"
 sb="$(mktemp -d)"; printf 'throwaway' > "$sb/junk.txt"
 HOME="$sb" ST_ASSUME_YES=1 tool securetrash shred "$sb/junk.txt" >/dev/null 2>&1
-[[ -e "$sb/junk.txt" ]] && bad "shred не удалил файл" || ok "shred удалил temp-файл"
+if [[ -e "$sb/junk.txt" ]]; then bad "shred не удалил файл"; else ok "shred удалил temp-файл"; fi
 rm -rf "$sb"
 
 # --- 5. securetrash: полный vault-цикл (песочница; пропуск, если /Volumes/SecretVault занят) ---
@@ -82,4 +82,8 @@ skip "vaultwatch (сторож открытого vault) и panic (скрыть 
 
 # --- итог ---
 printf '\n\033[1mИтог:\033[0m \033[32m%d ✓\033[0m  \033[31m%d ✗\033[0m  \033[33m%d –\033[0m\n' "$PASS" "$FAIL" "$SKIP"
-[[ "$FAIL" -eq 0 ]] && { echo "Все автоматические проверки прошли."; exit 0; } || { echo "Есть провалы — см. ✗ выше."; exit 1; }
+if [[ "$FAIL" -eq 0 ]]; then
+  echo "Все автоматические проверки прошли."; exit 0
+else
+  echo "Есть провалы — см. ✗ выше."; exit 1
+fi

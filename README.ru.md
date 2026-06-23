@@ -12,7 +12,7 @@
 
 | # | Инструмент | Шаг жизни секрета | Статус |
 |---|------------|-------------------|--------|
-| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | хранить (vault) + уничтожить | v0.4.0 |
+| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | хранить (vault) + уничтожить | v0.4.2 |
 | 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | защитить, пока vault открыт | v0.1.0 |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | мгновенно спрятать по тревоге | v0.1.0 |
 | 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | написать/просмотреть без следов | v0.1.0 |
