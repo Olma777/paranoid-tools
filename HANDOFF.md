@@ -4,18 +4,18 @@
 root-PROGRESS.md нет, состояние — по репо. Всё закоммичено и **запушено** (рабочие деревья
 чистые); на другой машине поднимается с GitHub + X10.
 
-## Снимок (2026-06-23, сессия 5 — аудит-3 ЗАКРЫТ: все 5×P1 + 2×P2 + 1×P3)
+## Снимок (2026-06-23, сессия 5 + доп — аудит-3 + signing/reparse закрыты)
 
 | Репо | HEAD | VERSION | Latest tag/Release | bats | CI |
 |------|------|---------|--------------------|------|-----|
-| umbrella | `29cf9b2` | — | — | — | — |
-| securetrash | `2f40015` | 0.4.2 | v0.4.2 ✅подписан | 61/61 | ✅ |
-| vaultwatch | `ea35706` | 0.1.1 | v0.1.1 ✅подписан | 56/56 | ✅ |
-| panic | `e1771de` | 0.1.1 | v0.1.1 ✅подписан | 33/33 | ✅ |
-| ghostdraft | `1868c7e` | 0.1.1 | v0.1.1 ✅подписан | 26/26 | ✅ |
-| seedsplit | `c1c964f` | **0.3.0** | v0.3.0 ✅подписан | 37/37 | ✅ |
+| umbrella | `14827e0` | — | — | — | — |
+| securetrash | `a8eec63` | 0.4.2 | v0.4.2 ✅подписан | 63/63 Pester | ✅ |
+| vaultwatch | `447dca2` | 0.1.1 | v0.1.1 ✅подписан | 56/56 | ✅ |
+| panic | `1e2d06f` | 0.1.1 | v0.1.1 ✅подписан | 33/33 | ✅ |
+| ghostdraft | `63bfd48` | 0.1.1 | v0.1.1 ✅подписан | 26/26 | ✅ |
+| seedsplit | `1e2c3f1` | **0.3.0** | v0.3.0 ✅подписан | 37/37 | ✅ |
 
-Все 5 репо **PRIVATE**. CI зелёный у всех. Всего bats 213/213.
+Все 5 репо **PRIVATE**. CI зелёный у всех. Всего bats 213/213 + 63 Pester.
 Снимок tool/repo/tag/commit/status — в `RELEASE-STATE.md` (convenience, не lock-файл;
 бывш. `MANIFEST.md`, переименован — теперь `MANIFEST.md` = манифест движения).
 
@@ -28,12 +28,18 @@ end-to-end) → `sha256` в формулах пере-синкнут под но
 
 **Сессия 5 закрыта.** Аудит #3 (AUDIT_FINDINGS.md) — 5×P1 + 2×P2 + 1×P3 — ЗАКРЫТ полностью.
 
-Закрытые находки:
+Закрытые находки аудита-3:
 - P1 securetrash: shred mount-root guard + v0.4.2 (pubkey в release assets).
 - P1 vaultwatch: close/TTL postconditions (detach verify + mdutil fail keeps state).
 - P2 panic: `status` команда (read-only preflight, 9 тестов).
 - P2 vaultwatch: `status` команда (active-session view, 3 теста).
 - P3: README securetrash v0.4.0→v0.4.2; ShellCheck SC2015 в smoke-test.sh/verify-releases.sh.
+
+Дополнительно (по замечаниям аудита после закрытия):
+- **Release signing fail-closed:** все 5 `release.yml` изменены `exit 0→exit 1` при отсутствии
+  `RELEASE_SIGNING_KEY` — больше не публикуются неподписанные релизы молча.
+- **Windows reparse/junction guard:** `securetrash.ps1` добавлен `Remove-StItemSafe` (не следует
+  по junction'ам в PS 5.1) + отказ shred'ить путь, который сам является reparse-точкой. +2 Pester.
 
 **Фокус сессии 6 (по приоритету):**
 1. **Ручной интерактив-QA** (Mr. Di, по `TESTING.md` §2): реальный `securetrash vault`
