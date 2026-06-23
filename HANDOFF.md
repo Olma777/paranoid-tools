@@ -9,7 +9,7 @@ root-PROGRESS.md нет, состояние — по репо. Всё заком
 | Репо | HEAD | VERSION | Latest tag/Release | bats | CI |
 |------|------|---------|--------------------|------|-----|
 | umbrella | `14827e0` | — | — | — | — |
-| securetrash | `a8eec63` | 0.4.2 | v0.4.2 ✅подписан | 63/63 Pester | ✅ |
+| securetrash | `d70802d` | 0.4.2 | v0.4.2 ✅подписан | 63/63 + 2 Pester | ✅ |
 | vaultwatch | `447dca2` | 0.1.1 | v0.1.1 ✅подписан | 56/56 | ✅ |
 | panic | `1e2d06f` | 0.1.1 | v0.1.1 ✅подписан | 33/33 | ✅ |
 | ghostdraft | `63bfd48` | 0.1.1 | v0.1.1 ✅подписан | 26/26 | ✅ |
@@ -36,8 +36,11 @@ end-to-end) → `sha256` в формулах пере-синкнут под но
 - P3: README securetrash v0.4.0→v0.4.2; ShellCheck SC2015 в smoke-test.sh/verify-releases.sh.
 
 Дополнительно (по замечаниям аудита после закрытия):
-- **Release signing fail-closed:** все 5 `release.yml` изменены `exit 0→exit 1` при отсутствии
-  `RELEASE_SIGNING_KEY` — больше не публикуются неподписанные релизы молча.
+- **Release signing fail-closed (полностью):**
+  - Все 5 `release.yml`: `exit 0→exit 1` при отсутствии `RELEASE_SIGNING_KEY`.
+  - `install.sh`: отсутствие `SHA256SUMS.sig` → `exit 1` (было: warn+continue). Escape:
+    `ALLOW_UNSIGNED_LEGACY=1 bash install.sh` для старых (до v0.4.2) релизов.
+  - 2 новых bats-теста: refusal без `.sig` + pass с `ALLOW_UNSIGNED_LEGACY=1`. 152/152 bats.
 - **Windows reparse/junction guard:** `securetrash.ps1` добавлен `Remove-StItemSafe` (не следует
   по junction'ам в PS 5.1) + отказ shred'ить путь, который сам является reparse-точкой. +2 Pester.
 
