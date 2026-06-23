@@ -16,13 +16,13 @@
 
 | Tool | Repo | Tag (release) | HEAD commit | Version | Статус |
 |------|------|---------------|-------------|---------|--------|
-| securetrash | `Di-kairos/securetrash` | `v0.4.1` | `81459ed` | 0.4.1 | CI ✅ · Release подписан ✅ (asset pubkey-gap, фикс в v0.4.2) |
+| securetrash | `Di-kairos/securetrash` | `v0.4.3` | `16e29ca` | 0.4.3 | CI ✅ · Release подписан ✅ |
 | vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.1` | `867f4de` | 0.1.1 | CI ✅ · Release подписан ✅ |
 | panic       | `Di-kairos/panic`       | `v0.1.1` | `c555af8` | 0.1.1 | CI ✅ · Release подписан ✅ |
 | ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.1` | `1868c7e` | 0.1.1 | CI ✅ · Release подписан ✅ |
 | seedsplit   | `Di-kairos/seedsplit`   | `v0.3.0` | `c1c964f` | **0.3.0** | CI ✅ · Release подписан ✅ |
 
-Все пять репозиториев **private**. Делать public — только по явному согласию (этап 2 = маркетинг).
+Все пять инструментов — open source, опубликованы публично (исходники и релизы открыты).
 
 ## Release drift — закрыт
 
