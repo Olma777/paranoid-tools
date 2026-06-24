@@ -12,25 +12,27 @@
 > и тег. Рассинхрон этой таблицы с реальными HEAD не ломает сборку/установку ни одного тула —
 > он лишь означает, что снимок устарел. Обновлять при закрытии сессии вместе с `HANDOFF.md`.
 
-Обновлено: 2026-06-22 (release-блок закрыт — все тулы перевыпущены + подписаны).
+Обновлено: 2026-06-24 (re-release — ассеты догнаны до исходников, все 5 перевыпущены + подписаны).
 
 | Tool | Repo | Tag (release) | HEAD commit | Version | Статус |
 |------|------|---------------|-------------|---------|--------|
-| securetrash | `Di-kairos/securetrash` | `v0.4.3` | `16e29ca` | 0.4.3 | CI ✅ · Release подписан ✅ |
-| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.1` | `867f4de` | 0.1.1 | CI ✅ · Release подписан ✅ |
-| panic       | `Di-kairos/panic`       | `v0.1.1` | `c555af8` | 0.1.1 | CI ✅ · Release подписан ✅ |
-| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.1` | `1868c7e` | 0.1.1 | CI ✅ · Release подписан ✅ |
-| seedsplit   | `Di-kairos/seedsplit`   | `v0.3.0` | `c1c964f` | **0.3.0** | CI ✅ · Release подписан ✅ |
+| securetrash | `Di-kairos/securetrash` | `v0.4.4` | `dedf873` | 0.4.4 | CI ✅ · Release подписан ✅ |
+| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.2` | `cfdc492` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| panic       | `Di-kairos/panic`       | `v0.1.2` | `f5431b4` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.2` | `622d8fb` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| seedsplit   | `Di-kairos/seedsplit`   | `v0.3.1` | `7145bf8` | **0.3.1** | CI ✅ · Release подписан ✅ |
 
 Все пять инструментов — open source, опубликованы публично (исходники и релизы открыты).
 
 ## Release drift — закрыт
 
-Все тулы перевыпущены (2026-06-22): bump версий → CHANGELOG → теги → релизы собраны и
-**подписаны** Ed25519-ключом (`SHA256SUMS.sig`, подпись провалидирована end-to-end) →
-`sha256` в `Formula/*.rb` пере-синкнут под новые tarball'ы. HEAD каждого тула = тег + один
-`chore(formula)`-коммит (формула всегда коммитится ПОСЛЕ тега — это норма, не дрейф).
-Релизные артефакты соответствуют коду.
+Все тулы перевыпущены (re-release 2026-06-24): между прошлым тегом и `main` накопились
+install.sh/release.yml hardening (fail-closed) и фичи (`status` у vaultwatch/panic) — теги
+не содержали их, хотя README документировал. Догнали: bump версий → CHANGELOG → теги →
+релизы собраны и **подписаны** Ed25519-ключом (`SHA256SUMS.sig`, провалидировано end-to-end
+через `verify-releases.sh`) → `sha256` в `Formula/*.rb` пере-синкнут под новые tarball'ы.
+HEAD каждого тула = тег + один `chore(formula)`-коммит (формула всегда коммитится ПОСЛЕ
+тега — это норма, не дрейф). Релизные артефакты соответствуют коду.
 
 ## Release signing
 
