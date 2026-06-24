@@ -4,6 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![platform](https://img.shields.io/badge/platform-macOS-blue)
+![dependencies](https://img.shields.io/badge/dependencies-zero-success)
+![releases](https://img.shields.io/badge/releases-Ed25519%20signed-blueviolet)
 ![tools](https://img.shields.io/badge/tools-5-informational)
 
 Honest privacy & security tools for macOS — one job each, no snake oil.
@@ -17,17 +19,22 @@ limits of what it can guarantee.
 
 ## The tools
 
-| # | Tool | Step in a secret's life | Status |
-|---|------|-------------------------|--------|
-| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store (encrypted vault) + destroy | v0.4.4 |
-| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard an open vault | v0.1.2 |
-| 3 | [`panic`](https://github.com/Di-kairos/panic)             | hide & lock everything, instantly | v0.1.2 |
-| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | v0.1.2 |
-| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | split a secret into Shamir shares | v0.3.1 |
+| # | Tool | Step in a secret's life | Platform | Latest |
+|---|------|-------------------------|----------|--------|
+| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store in an encrypted vault, then destroy | macOS · Windows (beta) | `v0.4.4` |
+| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard a vault while it's open | macOS | `v0.1.2` |
+| 3 | [`panic`](https://github.com/Di-kairos/panic)             | hide & lock everything, instantly | macOS | `v0.1.2` |
+| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | macOS | `v0.1.2` |
+| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | split a secret into Shamir shares | macOS | `v0.3.1` |
+
+> **Windows.** `securetrash` ships a PowerShell port (beta, Pester-tested in CI).
+> The other four are macOS-native by design — they lean on Spotlight, Time Machine,
+> `launchd` and `hdiutil`, which have no clean Windows equivalent.
 
 Each tool ships an English `README.md` (Russian in `README.ru.md`), a
-`CHANGELOG.md`, a checksum-verified `install.sh`, CI + release workflows, and a
-dedicated **Scope & limitations** section — read it before you trust the tool.
+`CHANGELOG.md`, a checksum-verified and **Ed25519-signed** `install.sh`, CI +
+release workflows, and a dedicated **Scope & limitations** section — read it
+before you trust the tool.
 
 ## Install
 
