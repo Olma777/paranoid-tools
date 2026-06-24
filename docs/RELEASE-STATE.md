@@ -16,11 +16,11 @@
 
 | Tool | Repo | Tag (release) | HEAD commit | Version | Статус |
 |------|------|---------------|-------------|---------|--------|
-| securetrash | `Di-kairos/securetrash` | `v0.4.4` | `dedf873` | 0.4.4 | CI ✅ · Release подписан ✅ |
-| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.2` | `cfdc492` | 0.1.2 | CI ✅ · Release подписан ✅ |
-| panic       | `Di-kairos/panic`       | `v0.1.2` | `f5431b4` | 0.1.2 | CI ✅ · Release подписан ✅ |
-| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.2` | `622d8fb` | 0.1.2 | CI ✅ · Release подписан ✅ |
-| seedsplit   | `Di-kairos/seedsplit`   | `v0.3.1` | `7145bf8` | **0.3.1** | CI ✅ · Release подписан ✅ |
+| securetrash | `Di-kairos/securetrash` | `v0.4.4` | `9032db4` | 0.4.4 | CI ✅ · Release подписан ✅ |
+| vaultwatch  | `Di-kairos/vaultwatch`  | `v0.1.2` | `045b8f5` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| panic       | `Di-kairos/panic`       | `v0.1.2` | `ff7f2bd` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| ghostdraft  | `Di-kairos/ghostdraft`  | `v0.1.2` | `8413bcb` | 0.1.2 | CI ✅ · Release подписан ✅ |
+| seedsplit   | `Di-kairos/seedsplit`   | `v0.3.1` | `e4f9957` | **0.3.1** | CI ✅ · Release подписан ✅ |
 
 Все пять инструментов — open source, опубликованы публично (исходники и релизы открыты).
 
@@ -31,8 +31,9 @@ install.sh/release.yml hardening (fail-closed) и фичи (`status` у vaultwat
 не содержали их, хотя README документировал. Догнали: bump версий → CHANGELOG → теги →
 релизы собраны и **подписаны** Ed25519-ключом (`SHA256SUMS.sig`, провалидировано end-to-end
 через `verify-releases.sh`) → `sha256` в `Formula/*.rb` пере-синкнут под новые tarball'ы.
-HEAD каждого тула = тег + один `chore(formula)`-коммит (формула всегда коммитится ПОСЛЕ
-тега — это норма, не дрейф). Релизные артефакты соответствуют коду.
+HEAD каждого тула = тег + `chore(formula)` + `docs`-bump версий в README (всё ПОСЛЕ тега —
+это норма, не дрейф: формула и доки пере-синкаются под уже выпущенный релиз). Релизные
+артефакты соответствуют коду.
 
 ## Release signing
 
