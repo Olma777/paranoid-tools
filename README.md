@@ -22,15 +22,15 @@ limits of what it can guarantee.
 | # | Tool | Step in a secret's life | Platform | Latest |
 |---|------|-------------------------|----------|--------|
 | 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store in an encrypted vault, then destroy | macOS · Windows (beta) | `v0.4.4` |
-| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard a vault while it's open | macOS | `v0.1.2` |
+| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard a vault while it's open | macOS · Windows (beta) | `v0.1.3` |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | hide & lock everything, instantly | macOS · Windows (beta) | `v0.1.3` |
 | 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | macOS · Windows (beta) | `v0.1.3` |
 | 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | split a secret into Shamir shares | macOS · Windows (beta) | `v0.3.2` |
 
-> **Windows.** `securetrash`, `seedsplit`, `panic` and `ghostdraft` ship PowerShell ports
-> (beta, Pester-tested in CI; seedsplit shares are byte-compatible with the macOS build).
-> Only `vaultwatch` remains macOS-native — it leans on Spotlight, Time Machine and
-> `launchd`, which have no clean Windows equivalent.
+> **Windows.** All five tools ship PowerShell ports (beta, Pester-tested in CI; seedsplit
+> shares are byte-compatible with the macOS build). The macOS primitives — Spotlight, Time
+> Machine, `launchd`, `hdiutil` — are mapped to their Windows equivalents (Windows Search,
+> VSS, Task Scheduler, BitLocker), with the gaps reported honestly per tool.
 
 Each tool ships an English `README.md` (Russian in `README.ru.md`), a
 `CHANGELOG.md`, a checksum-verified and **Ed25519-signed** `install.sh`, CI +

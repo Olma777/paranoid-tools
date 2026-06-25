@@ -21,15 +21,15 @@
 | # | Инструмент | Шаг жизни секрета | Платформа | Версия |
 |---|------------|-------------------|-----------|--------|
 | 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | хранить в зашифрованном vault, затем уничтожить | macOS · Windows (beta) | `v0.4.4` |
-| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | сторожить открытый vault | macOS | `v0.1.2` |
+| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | сторожить открытый vault | macOS · Windows (beta) | `v0.1.3` |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | мгновенно спрятать по тревоге | macOS · Windows (beta) | `v0.1.3` |
 | 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | написать/просмотреть без следов на диске | macOS · Windows (beta) | `v0.1.3` |
 | 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | распределить секрет на доли (Шамир) | macOS · Windows (beta) | `v0.3.2` |
 
-> **Windows.** У `securetrash`, `seedsplit`, `panic` и `ghostdraft` есть PowerShell-порты
-> (beta, покрыты Pester на CI; доли seedsplit байт-совместимы с macOS-сборкой). Только
-> `vaultwatch` остаётся macOS-native: опирается на Spotlight, Time Machine и `launchd`,
-> у которых нет чистого Windows-эквивалента.
+> **Windows.** Все пять инструментов имеют PowerShell-порты (beta, покрыты Pester на CI;
+> доли seedsplit байт-совместимы с macOS-сборкой). macOS-примитивы — Spotlight, Time Machine,
+> `launchd`, `hdiutil` — маппятся на Windows-эквиваленты (Windows Search, VSS, Task Scheduler,
+> BitLocker), а пробелы честно репортятся по каждому инструменту.
 
 У каждого тула — английский `README.md` (русский в `README.ru.md`), `CHANGELOG.md`,
 checksum-verified и **подписанный Ed25519** `install.sh`, CI + release-workflow и
