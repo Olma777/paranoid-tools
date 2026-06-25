@@ -3,19 +3,19 @@
 **English** · [Русский](README.ru.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-![platform](https://img.shields.io/badge/platform-macOS-blue)
+![platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows-blue)
 ![dependencies](https://img.shields.io/badge/dependencies-zero-success)
 ![releases](https://img.shields.io/badge/releases-Ed25519%20signed-blueviolet)
 ![tools](https://img.shields.io/badge/tools-5-informational)
 
-Honest privacy & security tools for macOS — one job each, no snake oil.
+Honest privacy & security tools for macOS & Windows — one job each, no snake oil.
 
 > **Why these tools exist →** [The Paranoid Tools Manifesto](MANIFEST.md)
 
 An umbrella of small command-line tools around the **lifecycle of a secret**
-(seed phrase / password / key). Each tool is its own git repo, a single-file
-pure-Bash script with **zero runtime dependencies**, and is honest about the
-limits of what it can guarantee.
+(seed phrase / password / key). Each tool is its own git repo — a single-file
+script (pure Bash on macOS/Linux, a PowerShell port on Windows) with **zero
+runtime dependencies** — and is honest about the limits of what it can guarantee.
 
 ## The tools
 

@@ -3,18 +3,19 @@
 [English](README.md) · **Русский**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-![platform](https://img.shields.io/badge/platform-macOS-blue)
+![platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows-blue)
 ![dependencies](https://img.shields.io/badge/dependencies-zero-success)
 ![releases](https://img.shields.io/badge/releases-Ed25519%20signed-blueviolet)
 ![tools](https://img.shields.io/badge/tools-5-informational)
 
-Честные privacy/security-утилиты для macOS — каждая делает одну вещь, без снейкойла.
+Честные privacy/security-утилиты для macOS и Windows — каждая делает одну вещь, без снейкойла.
 
 > **Зачем эти инструменты →** [Манифест Paranoid Tools](MANIFEST.ru.md)
 
 Зонтик небольших CLI-инструментов вокруг **жизненного цикла секрета**
 (seed-фраза / пароль / ключ). Каждый инструмент — отдельный git-репо, single-file
-на чистом Bash с **нулём зависимостей**, и честен о пределах своих гарантий.
+скрипт (чистый Bash на macOS/Linux, PowerShell-порт на Windows) с **нулём
+зависимостей**, и честен о пределах своих гарантий.
 
 ## Состав
 
