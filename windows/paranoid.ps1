@@ -15,8 +15,21 @@
 
 $PARANOID_VERSION = '0.1.0'
 
-# Точка монтирования vault (та же, что у securetrash/vaultwatch на Windows: BitLocker VHDX на V:).
-$script:VAULT_VOLUME = if ($env:ST_VAULT_VOLUME) { $env:ST_VAULT_VOLUME } else { 'V:\' }
+# Активный том vault. securetrash на Windows выбирает ПЕРВУЮ СВОБОДНУЮ букву динамически
+# (Get-StFreeDriveLetter — не хардкод V:) и пишет её в sidecar <vault>.vhdx.mount при open.
+# Резолвим реальную букву оттуда; ST_VAULT_VOLUME переопределяет вручную. $null = vault закрыт.
+function Get-PnVaultMount {
+    if ($env:ST_VAULT_VOLUME) { return $env:ST_VAULT_VOLUME }
+    $homeDir = if ($env:USERPROFILE) { $env:USERPROFILE } elseif ($env:HOME) { $env:HOME } else { $null }
+    if (-not $homeDir) { return $null }
+    $sidecar = Join-Path $homeDir 'SecureVault.vhdx.mount'
+    if (Test-Path -LiteralPath $sidecar) {
+        $m = (Get-Content -LiteralPath $sidecar -Raw).Trim()
+        if ($m) { return $m }
+    }
+    return $null
+}
+$script:VAULT_VOLUME = Get-PnVaultMount
 
 # --- locale ---
 function Get-PnLocale {
@@ -107,8 +120,9 @@ function Invoke-PnTool {
 
 # --- статус для dashboard (только чтение; деградирует в unknown, не угадывает) ---
 function Get-PnVaultState {
-    # Открыт = том vault доступен (BitLocker VHDX смонтирован на V:). Мокается в тестах.
-    if (Test-Path -LiteralPath $script:VAULT_VOLUME) { return 'open' } else { return 'closed' }
+    # Открыт = реальный том vault доступен (буква из sidecar/override). Мокается в тестах.
+    # Guard на $null/пустое: Test-Path -LiteralPath '' кидает исключение.
+    if ($script:VAULT_VOLUME -and (Test-Path -LiteralPath $script:VAULT_VOLUME)) { return 'open' } else { return 'closed' }
 }
 function Get-PnBitLockerState {
     try {
@@ -137,6 +151,10 @@ function Get-PnVaultwatchTtl {
 
 # --- текст dashboard отдельной функцией (Pester проверяет строки без запуска цикла) ---
 function Get-PnDashboard {
+    # Перечитываем активный том перется каждым рендером — буква могла появиться/исчезнуть
+    # (securetrash open/close между тиками). Тесты задают $script:VAULT_VOLUME напрямую и
+    # мокают Get-PnVaultState, поэтому refresh их вердикты не трогает.
+    $script:VAULT_VOLUME = Get-PnVaultMount
     $v  = Get-PnVaultState
     $bl = Get-PnBitLockerState
     $vw = Get-PnVaultwatchState

@@ -98,6 +98,46 @@ Describe 'Get-PnVaultState' {
         $script:VAULT_VOLUME = Join-Path ([System.IO.Path]::GetTempPath()) ("pn_v_" + [Guid]::NewGuid().ToString('N'))
         (Get-PnVaultState) | Should -Be 'closed'
     }
+    It 'reports closed (no throw) when the vault volume is null' {
+        $script:VAULT_VOLUME = $null
+        (Get-PnVaultState) | Should -Be 'closed'
+    }
+}
+
+Describe 'Get-PnVaultMount (F2: dynamic drive letter)' {
+    AfterEach { Remove-Item Env:\ST_VAULT_VOLUME -ErrorAction SilentlyContinue }
+
+    It 'honors the ST_VAULT_VOLUME override' {
+        $env:ST_VAULT_VOLUME = 'X:\'
+        (Get-PnVaultMount) | Should -Be 'X:\'
+    }
+
+    It 'reads the active drive letter from the securetrash mount sidecar' {
+        $tmpHome = Join-Path ([System.IO.Path]::GetTempPath()) ("pn_home_" + [Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $tmpHome -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $tmpHome 'SecureVault.vhdx.mount') -Value 'E:\' -NoNewline
+        $savedUP = $env:USERPROFILE; $savedHOME = $env:HOME
+        try {
+            $env:USERPROFILE = $tmpHome; $env:HOME = $tmpHome
+            (Get-PnVaultMount) | Should -Be 'E:\'
+        } finally {
+            $env:USERPROFILE = $savedUP; $env:HOME = $savedHOME
+            Remove-Item -LiteralPath $tmpHome -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'returns $null when no sidecar and no override (vault closed)' {
+        $tmpHome = Join-Path ([System.IO.Path]::GetTempPath()) ("pn_home_" + [Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $tmpHome -Force | Out-Null
+        $savedUP = $env:USERPROFILE; $savedHOME = $env:HOME
+        try {
+            $env:USERPROFILE = $tmpHome; $env:HOME = $tmpHome
+            (Get-PnVaultMount) | Should -BeNullOrEmpty
+        } finally {
+            $env:USERPROFILE = $savedUP; $env:HOME = $savedHOME
+            Remove-Item -LiteralPath $tmpHome -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 Describe 'Get-PnToolRepo' {
