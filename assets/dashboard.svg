@@ -1,0 +1,45 @@
+<svg width="760" height="470" viewBox="0 0 760 470" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="paranoid launcher dashboard">
+  <style>
+    .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 19px; }
+    .dim  { fill: #64748B; }
+    .fg   { fill: #E2E8F0; }
+    .grn  { fill: #22C55E; }
+    .wht  { fill: #F8FAFC; }
+    .yel  { fill: #FACC15; }
+  </style>
+
+  <rect x="1" y="1" width="758" height="468" rx="14" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <rect x="1" y="1" width="758" height="38" rx="14" fill="#1E293B"/>
+  <rect x="1" y="20" width="758" height="19" fill="#1E293B"/>
+  <circle cx="28" cy="20" r="6" fill="#EF4444"/>
+  <circle cx="50" cy="20" r="6" fill="#FACC15"/>
+  <circle cx="72" cy="20" r="6" fill="#22C55E"/>
+  <text x="380" y="26" text-anchor="middle" class="mono dim" font-size="15">paranoid — launcher</text>
+
+  <text x="40" y="82"  class="mono wht" font-weight="700">PARANOID TOOLS</text>
+  <text x="720" y="82" class="mono dim" text-anchor="end">macOS</text>
+
+  <text x="40" y="127" class="mono fg">Vault:</text>
+  <circle cx="205" cy="121" r="6" fill="#64748B"/>
+  <text x="222" y="127" class="mono fg">not set up</text>
+
+  <text x="40" y="157" class="mono fg">FileVault:</text>
+  <circle cx="205" cy="151" r="6" fill="#22C55E"/>
+  <text x="222" y="157" class="mono fg">ON</text>
+
+  <text x="40" y="187" class="mono fg">vaultwatch:</text>
+  <circle cx="205" cy="181" r="6" fill="#64748B"/>
+  <text x="222" y="187" class="mono fg">idle</text>
+
+  <text x="40" y="237" class="mono fg"><tspan class="grn">1)</tspan> Status — full read-only check</text>
+  <text x="40" y="265" class="mono fg"><tspan class="grn">2)</tspan> <tspan class="yel">PANIC NOW</tspan> — hide &amp; lock (confirm)</text>
+  <text x="40" y="293" class="mono fg"><tspan class="grn">3)</tspan> Vault — <tspan class="grn">create</tspan> / open / close</text>
+  <text x="40" y="321" class="mono fg"><tspan class="grn">4)</tspan> Split a secret (seedsplit)</text>
+  <text x="40" y="349" class="mono fg"><tspan class="grn">5)</tspan> Combine shares (seedsplit)</text>
+  <text x="40" y="377" class="mono fg"><tspan class="grn">6)</tspan> Ghostdraft — ephemeral note / pipe</text>
+  <text x="40" y="405" class="mono fg"><tspan class="grn">7)</tspan> Watch vault — guard + TTL (vaultwatch)</text>
+  <text x="40" y="433" class="mono dim"><tspan class="grn">0)</tspan> Quit</text>
+
+  <text x="500" y="433" class="mono grn">Choose: </text>
+  <rect x="592" y="419" width="11" height="20" fill="#22C55E"/>
+</svg>

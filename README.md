@@ -14,6 +14,8 @@
 
 **[Manifesto](MANIFEST.md)** &nbsp;·&nbsp; **[Tools](#the-tools)** &nbsp;·&nbsp; **[Install](#install)** &nbsp;·&nbsp; **[Launcher](#the-launcher)**
 
+<img src="assets/dashboard.svg" alt="The paranoid launcher: a status dashboard plus a menu over the five tools" width="560">
+
 </div>
 
 > **Don't trust, verify.** Ed25519-signed releases · zero runtime dependencies · one
