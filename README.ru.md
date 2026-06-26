@@ -32,11 +32,11 @@
 
 | # | Инструмент | Шаг жизни секрета | Платформа | Версия |
 |---|------------|-------------------|-----------|--------|
-| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | хранить в зашифрованном vault, затем уничтожить | macOS · Windows (beta) | `v0.4.5` |
-| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | сторожить открытый vault | macOS · Windows (beta) | `v0.1.3` |
+| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | хранить в зашифрованном vault, затем уничтожить | macOS · Windows (beta) | `v0.4.9` |
+| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | сторожить открытый vault | macOS · Windows (beta) | `v0.1.4` |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | мгновенно спрятать по тревоге | macOS · Windows (beta) | `v0.1.5` |
-| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | написать или просмотреть без следов на диске | macOS · Windows (beta) | `v0.1.3` |
-| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | разбить секрет на доли (Шамир) | macOS · Windows (beta) | `v0.3.2` |
+| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | написать или просмотреть без следов на диске | macOS · Windows (beta) | `v0.1.5` |
+| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | разбить секрет на доли (Шамир) | macOS · Windows (beta) | `v0.3.3` |
 
 > **Windows.** У всех пяти инструментов есть PowerShell-порты (beta, покрыты Pester на CI;
 > доли seedsplit байт-совместимы с macOS-сборкой). macOS-примитивы — Spotlight, Time Machine,
@@ -68,7 +68,23 @@ verify-then-run: установщик проверяет подпись Ed25519 
 Нужен только один инструмент или хочется пройти каждый шаг руками? В README каждого
 инструмента есть отдельный verify-then-run сниппет и однострочная быстрая форма. См. [состав](#состав).
 
-Практический гайд по-русски: [ИНСТРУКЦИЯ.md](ИНСТРУКЦИЯ.md).
+### Обновление
+
+Команды `update` нет — обновление означает **повторный запуск установщика**. Он тянет
+последний подписанный релиз каждого инструмента и перезаписывает бинарь на месте:
+
+```bash
+cd paranoid-tools
+git pull            # обновить клон (лаунчер + установщик)
+bash install.sh     # переустановить все инструменты на последних подписанных релизах
+```
+
+Версию инструмента смотри через `securetrash version` (или `--version` у любого). Если в
+обновлении изменилось рантайм-поведение (напр. `securetrash vault` теперь монтирует том
+видимо в Finder), уже открытая сессия держит старый код — переоткрой её: `securetrash vault
+close`, затем `securetrash vault open`.
+
+Практические гайды: **[English](GUIDE.md)** · [Русский](ИНСТРУКЦИЯ.md).
 
 ## Лаунчер
 
@@ -82,6 +98,10 @@ verify-then-run: установщик проверяет подпись Ed25519 
 ```bash
 paranoid          # открывает дашборд и меню
 ```
+
+<div align="center">
+<img src="demo/demo.gif" alt="Лаунчер paranoid: живой дашборд состояния, затем проверка только на чтение — всё из одного меню" width="720">
+</div>
 
 Честно: это лаунчер ради удобства, а не скорость настоящей паники. Для мгновенной
 системной кнопки паники — `panic hotkey install` (глобальный хоткей через skhd, см. README

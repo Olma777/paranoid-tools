@@ -99,6 +99,10 @@ unaltered. Run it with no arguments:
 paranoid          # opens the dashboard + menu
 ```
 
+<div align="center">
+<img src="demo/demo.gif" alt="paranoid launcher: live status dashboard, then a read-only check, all from one menu" width="720">
+</div>
+
 Honest note: the launcher is for convenience, not real-panic-speed. For an instant,
 system-wide panic key, use `panic hotkey install` (a global hotkey via skhd — see panic's
 README). An open vault is always flagged "at risk".
