@@ -27,19 +27,16 @@ An umbrella of small command-line tools around the **lifecycle of a secret**
 (seed phrase / password / key). Each tool is its own git repo — a single-file
 script (pure Bash on macOS/Linux, a PowerShell port on Windows) with **zero
 runtime dependencies** — and is honest about the limits of what it can guarantee.
-(seed phrase / password / key). Each tool is its own git repo — a single-file
-script (pure Bash on macOS/Linux, a PowerShell port on Windows) with **zero
-runtime dependencies** — and is honest about the limits of what it can guarantee.
 
 ## The tools
 
 | # | Tool | Step in a secret's life | Platform | Latest |
 |---|------|-------------------------|----------|--------|
-| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store in an encrypted vault, then destroy | macOS · Windows (beta) | `v0.4.5` |
-| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard a vault while it's open | macOS · Windows (beta) | `v0.1.3` |
+| 1 | [`securetrash`](https://github.com/Di-kairos/securetrash) | store in an encrypted vault, then destroy | macOS · Windows (beta) | `v0.4.9` |
+| 2 | [`vaultwatch`](https://github.com/Di-kairos/vaultwatch)   | guard a vault while it's open | macOS · Windows (beta) | `v0.1.4` |
 | 3 | [`panic`](https://github.com/Di-kairos/panic)             | hide & lock everything, instantly | macOS · Windows (beta) | `v0.1.5` |
-| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | macOS · Windows (beta) | `v0.1.3` |
-| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | split a secret into Shamir shares | macOS · Windows (beta) | `v0.3.2` |
+| 4 | [`ghostdraft`](https://github.com/Di-kairos/ghostdraft)   | write/view text leaving no disk trace | macOS · Windows (beta) | `v0.1.5` |
+| 5 | [`seedsplit`](https://github.com/Di-kairos/seedsplit)     | split a secret into Shamir shares | macOS · Windows (beta) | `v0.3.3` |
 
 > **Windows.** All five tools ship PowerShell ports (beta, Pester-tested in CI; seedsplit
 > shares are byte-compatible with the macOS build). The macOS primitives — Spotlight, Time
@@ -71,7 +68,23 @@ installing. Nothing executes until it has been verified. Pin a version with, e.g
 Prefer to install just one tool, or inspect each step by hand? Every tool's README carries a
 standalone verify-then-run snippet plus a one-line quick form. See [the tools](#the-tools).
 
-Plain-Russian usage guide: [ИНСТРУКЦИЯ.md](ИНСТРУКЦИЯ.md).
+### Updating
+
+There is no `update` command — updating means **re-running the installer**. It pulls each
+tool's latest signed release and overwrites the binary in place:
+
+```bash
+cd paranoid-tools
+git pull            # refresh the clone (launcher + installer)
+bash install.sh     # reinstall all tools at their latest signed releases
+```
+
+Check a tool's version with `securetrash version` (or `--version` on any tool). If a tool's
+runtime behavior changed in the update (e.g. `securetrash vault` now mounts the volume
+visibly in Finder), an already-open session keeps the old code — reopen it: `securetrash
+vault close` then `securetrash vault open`.
+
+Usage guides: **[English](GUIDE.md)** · [Русский](ИНСТРУКЦИЯ.md).
 
 ## The launcher
 
