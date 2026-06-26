@@ -71,8 +71,9 @@ unaltered. Run it with no arguments:
 paranoid          # opens the dashboard + menu
 ```
 
-Honest note: it is a convenience launcher, not real-panic-speed — a global hotkey
-belongs to a later native-app phase. An open vault is always flagged "at risk".
+Honest note: the launcher is for convenience, not real-panic-speed. For an instant,
+system-wide panic key, use `panic hotkey install` (a global hotkey via skhd — see panic's
+README). An open vault is always flagged "at risk".
 A Windows PowerShell mirror now ships at `windows/paranoid.ps1` (beta) — run it with
 `pwsh -File windows/paranoid.ps1` (or drop it on PATH as `paranoid`); it drives the
 same five PowerShell ports.
