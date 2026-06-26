@@ -61,6 +61,13 @@ t() {
     ru:m_panic)      echo 'ПАНИКА — спрятать и запереть (подтвердить)' ;;
     en:m_vault)      echo 'Vault — create / open / close' ;;
     ru:m_vault)      echo 'Сейф — создать / открыть / закрыть' ;;
+    en:m_destroy)    echo 'Destroy the vault (irreversible)' ;;
+    ru:m_destroy)    echo 'Уничтожить сейф (необратимо)' ;;
+    en:destroy_na)   echo 'no vault' ;;       ru:destroy_na)   echo 'нет сейфа' ;;
+    en:destroy_hint) echo 'This permanently destroys the vault and everything inside it. securetrash will ask you to confirm with "yes".' ;;
+    ru:destroy_hint) echo 'Это безвозвратно уничтожит сейф и всё, что внутри. securetrash попросит подтвердить словом «yes».' ;;
+    en:destroy_none) echo 'No vault to destroy — create one first (menu item 3).' ;;
+    ru:destroy_none) echo 'Уничтожать нечего — сначала создай сейф (пункт 3).' ;;
     en:m_split)      echo 'Split a secret (seedsplit)' ;;
     ru:m_split)      echo 'Разбить секрет (seedsplit)' ;;
     en:m_combine)    echo 'Combine shares (seedsplit)' ;;
@@ -221,15 +228,24 @@ _render() {
     printf '  %s2) 🔒 %s (%s)%s\n' "$C_DIM" "$(t m_panic)" "$(t not_installed)" "$C_RST"
   fi
   _menu_item 3 "$(t m_vault)"  securetrash
-  _menu_item 4 "$(t m_split)"  seedsplit
-  _menu_item 5 "$(t m_combine)" seedsplit
-  _menu_item 6 "$(t m_ghost)"  ghostdraft
-  # П.7 — toggle: активна охрана → «снять», иначе → «сторожить». Иначе охрану
+  # П.4 Destroy — необратимо. Серый, если securetrash нет ИЛИ контейнера ещё нет
+  # (нечего уничтожать) — иначе пункт вёл бы в тупик «нет сейфа».
+  if ! _tool_installed securetrash; then
+    printf '  %s4) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t not_installed)" "$C_RST"
+  elif [[ "$v" == none ]]; then
+    printf '  %s4) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t destroy_na)" "$C_RST"
+  else
+    printf '  %s4)%s 💣 %s\n' "$C_BLD" "$C_RST" "$(t m_destroy)"
+  fi
+  _menu_item 5 "$(t m_split)"  seedsplit
+  _menu_item 6 "$(t m_combine)" seedsplit
+  _menu_item 7 "$(t m_ghost)"  ghostdraft
+  # П.8 — toggle: активна охрана → «снять», иначе → «сторожить». Иначе охрану
   # нельзя было выключить из меню (тупик: только старт, без стопа).
   if [[ "$vw" == active ]]; then
-    _menu_item 7 "$(t m_unwatch)" vaultwatch
+    _menu_item 8 "$(t m_unwatch)" vaultwatch
   else
-    _menu_item 7 "$(t m_watch)"   vaultwatch
+    _menu_item 8 "$(t m_watch)"   vaultwatch
   fi
   printf '  0) %s\n\n' "$(t m_quit)"
 }
@@ -271,6 +287,20 @@ _act_vault() {
     closed) _run_tool securetrash vault open ;;
     none)   echo "  $(t vault_setup_hint)"; _run_tool securetrash vault create ;;
   esac
+  _pause
+}
+# Уничтожение сейфа — необратимо. Лаунчер предупреждает, но реальное подтверждение (yes)
+# и отказ при смонтированном томе с открытыми файлами — на стороне securetrash.
+_act_destroy() {
+  if ! _tool_installed securetrash; then
+    echo "${C_YEL}$(t install_hint securetrash "$(_tool_repo securetrash)")${C_RST}" >&2
+    _pause; return
+  fi
+  if [[ "$(_status_vault)" == none ]]; then
+    echo "  $(t destroy_none)"; _pause; return
+  fi
+  echo "  ${C_YEL}$(t destroy_hint)${C_RST}"
+  _run_tool securetrash vault destroy
   _pause
 }
 # Подсказка по выходу из редактора (иначе новичок не знает, как сохранить и выйти).
@@ -377,10 +407,11 @@ main() {
       1) _act_status ;;
       2) _act_panic ;;
       3) _act_vault ;;
-      4) _act_split ;;
-      5) _act_combine ;;
-      6) _act_ghost ;;
-      7) _act_watch ;;
+      4) _act_destroy ;;
+      5) _act_split ;;
+      6) _act_combine ;;
+      7) _act_ghost ;;
+      8) _act_watch ;;
       0|q|Q) echo; return 0 ;;
       *) : ;;   # неверный ввод → перерисовать меню
     esac

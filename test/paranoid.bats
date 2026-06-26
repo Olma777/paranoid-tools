@@ -160,57 +160,79 @@ run_paranoid() {
   ! grep -q "vault create" "$LOG"
 }
 
-# --- seedsplit (пункты 4/5) ---
+# --- destroy vault (пункт 4) ---
 
-@test "menu 4 dispatches 'seedsplit split'" {
-  run_paranoid $'4\n\n0\n'
+@test "menu 4 dispatches 'securetrash vault destroy' when a vault exists" {
+  touch "$TMP/container.sparsebundle"
+  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  [ "$status" -eq 0 ]
+  grep -qx "securetrash vault destroy" "$LOG"
+}
+
+@test "menu 4 warns before destroy (irreversible)" {
+  touch "$TMP/container.sparsebundle"
+  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"permanently"* ]]
+}
+
+@test "menu 4 is a no-op when there is no vault (no dead-end)" {
+  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+  [ "$status" -eq 0 ]
+  ! grep -q "vault destroy" "$LOG"
+}
+
+# --- seedsplit (пункты 5/6) ---
+
+@test "menu 5 dispatches 'seedsplit split'" {
+  run_paranoid $'5\n\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "seedsplit split" "$LOG"
 }
 
-@test "menu 5 dispatches 'seedsplit combine'" {
-  run_paranoid $'5\n\n0\n'
+@test "menu 6 dispatches 'seedsplit combine'" {
+  run_paranoid $'6\n\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "seedsplit combine" "$LOG"
 }
 
-# --- ghostdraft submenu (пункт 6) ---
+# --- ghostdraft submenu (пункт 7) ---
 
 @test "ghostdraft submenu 1 dispatches 'ghostdraft new'" {
-  run_paranoid $'6\n1\n\n0\n'
+  run_paranoid $'7\n1\n\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft new" "$LOG"
 }
 
 @test "ghostdraft submenu 2 dispatches 'ghostdraft pipe'" {
-  run_paranoid $'6\n2\n\n0\n'
+  run_paranoid $'7\n2\n\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft pipe" "$LOG"
 }
 
 @test "ghostdraft submenu 3 dispatches 'ghostdraft new --clipboard'" {
-  run_paranoid $'6\n3\n\n0\n'
+  run_paranoid $'7\n3\n\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft new --clipboard" "$LOG"
 }
 
 @test "ghost submenu 3 warns the clipboard auto-wipes" {
-  run_paranoid $'6\n3\n\n0\n'
+  run_paranoid $'7\n3\n\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"clipboard"* ]]
   [[ "$output" == *"20s"* ]]
 }
 
-# --- vaultwatch start (пункт 7) ---
+# --- vaultwatch start (пункт 8) ---
 
 @test "watch with TTL dispatches 'vaultwatch start --ttl <X> <vault>'" {
-  run_paranoid $'7\n30m\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'8\n30m\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch start --ttl 30m $TMP/vault" "$LOG"
 }
 
 @test "watch without TTL dispatches 'vaultwatch start <vault>'" {
-  run_paranoid $'7\n\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'8\n\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch start $TMP/vault" "$LOG"
 }
@@ -247,7 +269,7 @@ STUB
 
 @test "missing tool action invokes nothing (log stays empty for it)" {
   rm -f "$STUBS/seedsplit"
-  run_paranoid $'4\n\n0\n'
+  run_paranoid $'5\n\n0\n'
   [ "$status" -eq 0 ]
   ! grep -q "^seedsplit" "$LOG"
   # И показан хинт на установку (репо).
@@ -288,26 +310,26 @@ STUB
 # --- UX: подсказки и тупики ---
 
 @test "split prints a paste prompt before reading stdin" {
-  run_paranoid $'4\n\n0\n'
+  run_paranoid $'5\n\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"Paste the secret"* ]]
 }
 
 @test "combine prints a one-per-line paste prompt" {
-  run_paranoid $'5\n\n0\n'
+  run_paranoid $'6\n\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"one per line"* ]]
 }
 
 @test "ghost new shows which editor opens and how to exit" {
-  EDITOR=nano run_paranoid $'6\n1\n\n0\n' EDITOR=nano
+  EDITOR=nano run_paranoid $'7\n1\n\n0\n' EDITOR=nano
   [ "$status" -eq 0 ]
   [[ "$output" == *"nano"* ]]
   [[ "$output" == *"Ctrl-X"* ]]
 }
 
 @test "ghost pipe shows a hint (does not silently wait on stdin)" {
-  run_paranoid $'6\n2\n\n0\n'
+  run_paranoid $'7\n2\n\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"clipboard"* ]]
 }
@@ -319,13 +341,13 @@ STUB
 }
 
 @test "invalid TTL is rejected and does not start vaultwatch" {
-  run_paranoid $'7\n30min\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'8\n30min\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Invalid format"* ]]
   ! grep -q "vaultwatch start" "$LOG"
 }
 
-@test "menu item 7 stops the watch when a session is active" {
+@test "menu item 8 stops the watch when a session is active" {
   cat >"$STUBS/vaultwatch" <<EOF
 #!/usr/bin/env bash
 printf 'vaultwatch %s\n' "\$*" >>"$LOG"
@@ -333,7 +355,7 @@ printf 'vaultwatch %s\n' "\$*" >>"$LOG"
 exit 0
 EOF
   chmod +x "$STUBS/vaultwatch"
-  run_paranoid $'7\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'8\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch stop $TMP/vault" "$LOG"
 }

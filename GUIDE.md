@@ -48,10 +48,11 @@ paranoid
 1) Status        — full read-only check (what actually protects you on your hardware)
 2) 🔒 PANIC NOW  — hide & lock everything (with confirmation)
 3) Vault         — create / open / close the vault
-4) Split         — split a secret into shares (seedsplit)
-5) Combine       — rebuild a secret from shares (seedsplit)
-6) Ghostdraft    — leave no disk trace: 1) new  2) pipe  3) new + copy to clipboard
-7) Watch vault   — guard an open vault + TTL (vaultwatch)
+4) 💣 Destroy    — destroy the vault and all its contents (irreversible; greyed if no vault)
+5) Split         — split a secret into shares (seedsplit)
+6) Combine       — rebuild a secret from shares (seedsplit)
+7) Ghostdraft    — leave no disk trace: 1) new  2) pipe  3) new + copy to clipboard
+8) Watch vault   — guard an open vault + TTL (vaultwatch)
 0) Quit
 ```
 
