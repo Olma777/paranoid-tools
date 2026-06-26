@@ -127,14 +127,24 @@ _status_vault() {
 }
 _status_filevault() {
   command -v fdesetup >/dev/null 2>&1 || { echo unknown; return; }
-  if fdesetup status 2>/dev/null | grep -qi "FileVault is On"; then echo on
-  elif fdesetup status 2>/dev/null | grep -qi "FileVault is Off"; then echo off
+  # Вывод захватываем в переменную и матчим here-string, а НЕ через прямой пайп
+  # `fdesetup ... | grep -q`: под `set -o pipefail` такой пайп ложно «падает» —
+  # grep -q закрывает канал на первом совпадении, источник получает SIGPIPE (код
+  # 141), и pipefail делает весь конвейер ненулевым (ложный unknown). См. также
+  # _status_vaultwatch — там этот же баг давал «idle» при активной сессии.
+  local s; s="$(fdesetup status 2>/dev/null)"
+  if   grep -qi "FileVault is On"  <<<"$s"; then echo on
+  elif grep -qi "FileVault is Off" <<<"$s"; then echo off
   else echo unknown; fi
 }
 _status_vaultwatch() {
   _tool_installed vaultwatch || { echo absent; return; }
-  # Активная сессия = вывод status содержит "session:"/"сессия:".
-  if vaultwatch status 2>/dev/null | grep -qiE 'session:|сессия:'; then echo active; else echo idle; fi
+  # Активная сессия = вывод status содержит "session:"/"сессия:". Захват в переменную +
+  # here-string (а не `vaultwatch status | grep -q`): прямой пайп под pipefail ложно
+  # давал «idle» — grep -q закрывает канал после первой строки, vaultwatch ловит SIGPIPE
+  # (141), pipefail делает конвейер ненулевым. Подробности — в _status_filevault.
+  local out; out="$(vaultwatch status 2>/dev/null)"
+  if grep -qiE 'session:|сессия:' <<<"$out"; then echo active; else echo idle; fi
 }
 
 # Цветная точка по состоянию: ok=green, warn=yellow, dim=grey.

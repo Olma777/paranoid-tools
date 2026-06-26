@@ -202,6 +202,27 @@ run_paranoid() {
   grep -qx "vaultwatch start $TMP/vault" "$LOG"
 }
 
+# Регресс: активная сессия должна показываться как "active", а не "idle".
+# Баг: `vaultwatch status | grep -q` под `set -o pipefail` — grep -q закрывает пайп
+# на первой строке, vaultwatch ловит SIGPIPE (141), pipefail делает конвейер
+# ненулевым → ложный "idle". Стаб с session: на первой строке + хвост больше буфера
+# пайпа (~64KB) делает SIGPIPE детерминированным, иначе мелкий вывод влез бы в буфер.
+@test "active vaultwatch session shows 'active' under pipefail (no SIGPIPE false-idle)" {
+  cat >"$STUBS/vaultwatch" <<'STUB'
+#!/usr/bin/env bash
+if [ "${1:-}" = "status" ]; then
+  echo "session: /tmp/vault (running 5m)"
+  for i in $(seq 1 5000); do echo "  detail line $i padding padding padding padding"; done
+fi
+exit 0
+STUB
+  chmod +x "$STUBS/vaultwatch"
+  run_paranoid $'0\n'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"active"* ]]
+  [[ "$output" != *"idle"* ]]
+}
+
 # --- отсутствующий тул ---
 
 @test "missing tool shows '(not installed)' in menu" {
