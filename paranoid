@@ -79,6 +79,42 @@ t() {
     en:m_unwatch)    echo 'Stop watching the vault (vaultwatch)' ;;
     ru:m_unwatch)    echo 'Снять охрану сейфа (vaultwatch)' ;;
     en:m_quit)       echo 'Quit' ;;          ru:m_quit)       echo 'Выход' ;;
+    # --- top-level group items (открывают подменю) ---
+    en:m_t_vault)    echo 'Vault ▸        open · empty · destroy · watch' ;;
+    ru:m_t_vault)    echo 'Сейф ▸         открыть · очистить · уничтожить · сторожить' ;;
+    en:m_t_notepad)  echo 'Notepad ▸      ghostdraft: ephemeral note / clipboard' ;;
+    ru:m_t_notepad)  echo 'Блокнот ▸      ghostdraft: эфемерная заметка / буфер' ;;
+    en:m_t_secrets)  echo 'Secrets ▸      seedsplit: split / combine' ;;
+    ru:m_t_secrets)  echo 'Секреты ▸      seedsplit: разбить / собрать' ;;
+    en:back)         echo 'Back' ;;          ru:back)         echo 'Назад' ;;
+    # --- подменю-заголовки ---
+    en:h_vault)      echo 'Vault — encrypted container' ;;
+    ru:h_vault)      echo 'Сейф — зашифрованный контейнер' ;;
+    en:h_notepad)    echo 'Notepad — ephemeral text (ghostdraft)' ;;
+    ru:h_notepad)    echo 'Блокнот — эфемерный текст (ghostdraft)' ;;
+    en:h_secrets)    echo 'Secrets — Shamir shares (seedsplit)' ;;
+    ru:h_secrets)    echo 'Секреты — доли Шамира (seedsplit)' ;;
+    # --- vault submenu: динамический пункт 1 по состоянию ---
+    en:m_v_create)   echo 'Create a vault' ;;  ru:m_v_create)   echo 'Создать сейф' ;;
+    en:m_v_open)     echo 'Open the vault' ;;   ru:m_v_open)     echo 'Открыть сейф' ;;
+    en:m_v_close)    echo 'Close the vault' ;;  ru:m_v_close)    echo 'Закрыть сейф' ;;
+    # --- empty (= securetrash vault reset) ---
+    en:m_empty)      echo 'Empty — wipe contents, keep the vault (crypto-shred)' ;;
+    ru:m_empty)      echo 'Очистить — стереть содержимое, сейф оставить (crypto-shred)' ;;
+    en:empty_na)     echo 'no vault' ;;        ru:empty_na)     echo 'нет сейфа' ;;
+    en:empty_none)   echo 'No vault to empty — create one first.' ;;
+    ru:empty_none)   echo 'Очищать нечего — сначала создай сейф.' ;;
+    en:empty_hint)   echo 'This destroys everything inside and recreates an EMPTY vault — a real crypto-shred guarantee (unlike wiping files in place on an SSD). securetrash will ask you to confirm with "yes" and set a password for the fresh vault.' ;;
+    ru:empty_hint)   echo 'Это уничтожит всё внутри и создаст ПУСТОЙ сейф заново — настоящая crypto-shred гарантия (в отличие от перезаписи файлов на месте на SSD). securetrash попросит подтвердить «yes» и задать пароль нового сейфа.' ;;
+    # --- выбор размера сейфа (cap, не резерв — sparsebundle тонкий) ---
+    en:size_free)    printf 'Free space on this disk: ~%s GB.' "$1" ;;
+    ru:size_free)    printf 'Свободно на диске: ~%s ГБ.' "$1" ;;
+    en:size_prompt)  echo 'Vault size cap (e.g. 1g, 5g, 500m; empty = default 1g). A ceiling, not reserved space — the vault grows as you add files:' ;;
+    ru:size_prompt)  echo 'Потолок размера сейфа (напр. 1g, 5g, 500m; пусто = по умолчанию 1g). Это лимит, не резерв — сейф растёт по мере добавления файлов:' ;;
+    en:size_bad)     echo 'Invalid size — use a number with optional g/m (e.g. 1g, 500m). Cancelled.' ;;
+    ru:size_bad)     echo 'Неверный размер — число с опц. g/m (напр. 1g, 500m). Отменено.' ;;
+    en:size_cap_warn) printf 'Note: a %sg cap exceeds free space (~%sg) — the vault still cannot grow past what is actually free.' "$1" "$2" ;;
+    ru:size_cap_warn) printf 'Note: потолок %sg больше свободного (~%sg) — сейф всё равно не вырастет дальше реально свободного места.' "$1" "$2" ;;
     en:not_installed) echo 'not installed' ;; ru:not_installed) echo 'не установлен' ;;
     en:install_hint)  printf 'Install %s: %s' "$2" "$3" ;;
     ru:install_hint)  printf 'Установить %s: %s' "$2" "$3" ;;
@@ -227,26 +263,12 @@ _render() {
   else
     printf '  %s2) 🔒 %s (%s)%s\n' "$C_DIM" "$(t m_panic)" "$(t not_installed)" "$C_RST"
   fi
-  _menu_item 3 "$(t m_vault)"  securetrash
-  # П.4 Destroy — необратимо. Серый, если securetrash нет ИЛИ контейнера ещё нет
-  # (нечего уничтожать) — иначе пункт вёл бы в тупик «нет сейфа».
-  if ! _tool_installed securetrash; then
-    printf '  %s4) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t not_installed)" "$C_RST"
-  elif [[ "$v" == none ]]; then
-    printf '  %s4) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t destroy_na)" "$C_RST"
-  else
-    printf '  %s4)%s 💣 %s\n' "$C_BLD" "$C_RST" "$(t m_destroy)"
-  fi
-  _menu_item 5 "$(t m_split)"  seedsplit
-  _menu_item 6 "$(t m_combine)" seedsplit
-  _menu_item 7 "$(t m_ghost)"  ghostdraft
-  # П.8 — toggle: активна охрана → «снять», иначе → «сторожить». Иначе охрану
-  # нельзя было выключить из меню (тупик: только старт, без стопа).
-  if [[ "$vw" == active ]]; then
-    _menu_item 8 "$(t m_unwatch)" vaultwatch
-  else
-    _menu_item 8 "$(t m_watch)"   vaultwatch
-  fi
+  # Группы-подменю (3–5). Top-level держим коротким: чтение (1) и тревога (2) —
+  # мгновенно наверху; всё остальное сгруппировано по смыслу. Сами пункты внутри
+  # подменю гасятся серым, если их тул отсутствует, поэтому группы тут всегда активны.
+  printf '  3) %s\n' "$(t m_t_vault)"
+  printf '  4) %s\n' "$(t m_t_notepad)"
+  printf '  5) %s\n' "$(t m_t_secrets)"
   printf '  0) %s\n\n' "$(t m_quit)"
 }
 
@@ -278,14 +300,42 @@ _act_panic() {
   _run_tool panic now $hard
   _pause
 }
+# Спросить потолок размера для нового сейфа. Echo выбранного размера в stdout (пусто = дефолт
+# тула 1g), return 1 при неверном формате (caller отменяет create/reset). Подсказки/предупреждения
+# идут в stderr, чтобы не попасть в подставляемый аргумент. sparsebundle тонкий → это ЛИМИТ, не резерв.
+_ask_vault_size() {
+  local free_g size num
+  free_g="$(df -g "$HOME" 2>/dev/null | awk 'NR==2{print $4}')"
+  [[ -n "$free_g" ]] && echo "  ${C_DIM}$(t size_free "$free_g")${C_RST}" >&2
+  echo "  $(t size_prompt)" >&2
+  read -r -p "  > " size <&0 || size=""
+  [[ -z "$size" ]] && return 0   # пусто → дефолт тула (на stdout ничего)
+  if ! [[ "$size" =~ ^[0-9]+[gGmM]?$ ]]; then
+    echo "  ${C_YEL}$(t size_bad)${C_RST}" >&2; return 1
+  fi
+  # Потолок (в ГБ) больше свободного? Предупреждаем, но разрешаем — это лимит, не резерв.
+  if [[ -n "$free_g" && "$size" =~ ^([0-9]+)[gG]$ ]]; then
+    num="${BASH_REMATCH[1]}"
+    (( num > free_g )) && echo "  ${C_YEL}$(t size_cap_warn "$num" "$free_g")${C_RST}" >&2
+  fi
+  echo "$size"
+}
 _act_vault() {
   # Трёхсостоянийно: нет контейнера → создать (иначе пользователь упирался в тупик
   # «нет контейнера, сначала vault create» без видимого пути к созданию); закрыт → открыть;
-  # открыт → закрыть. Сама securetrash спросит размер/пароль — лаунчер секретов не трогает.
+  # открыт → закрыть. На создании спрашиваем размер (cap); пароль securetrash спросит сам.
   case "$(_status_vault)" in
     open)   _run_tool securetrash vault close ;;
     closed) _run_tool securetrash vault open ;;
-    none)   echo "  $(t vault_setup_hint)"; _run_tool securetrash vault create ;;
+    none)
+      echo "  $(t vault_setup_hint)"
+      local sz
+      # неверный формат размера → _ask_vault_size вернёт 1 → отменяем создание (не тупик).
+      if sz="$(_ask_vault_size)"; then
+        # shellcheck disable=SC2086  # пусто → без аргумента = дефолтный размер тула
+        _run_tool securetrash vault create $sz
+      fi
+      ;;
   esac
   _pause
 }
@@ -301,6 +351,26 @@ _act_destroy() {
   fi
   echo "  ${C_YEL}$(t destroy_hint)${C_RST}"
   _run_tool securetrash vault destroy
+  _pause
+}
+# Очистить сейф = securetrash vault reset (crypto-shred контейнера + создать пустой заново).
+# Честная гарантия безвозвратности: in-place перезапись на SSD — best-effort (тот же ключ
+# продолжает расшифровывать остаточные блоки), а reset выкидывает ключ. Реальный yes-confirm
+# и запрос пароля нового сейфа — на стороне securetrash; лаунчер лишь предупреждает.
+_act_empty() {
+  if ! _tool_installed securetrash; then
+    echo "${C_YEL}$(t install_hint securetrash "$(_tool_repo securetrash)")${C_RST}" >&2
+    _pause; return
+  fi
+  if [[ "$(_status_vault)" == none ]]; then
+    echo "  $(t empty_none)"; _pause; return
+  fi
+  echo "  ${C_YEL}$(t empty_hint)${C_RST}"
+  local sz
+  if sz="$(_ask_vault_size)"; then
+    # shellcheck disable=SC2086  # пусто → дефолтный размер тула
+    _run_tool securetrash vault reset $sz
+  fi
   _pause
 }
 # Подсказка по выходу из редактора (иначе новичок не знает, как сохранить и выйти).
@@ -338,21 +408,28 @@ _ghost_new() {
     _run_tool ghostdraft new
   fi
 }
-_act_ghost() {
-  echo "  1) $(t ghost_new)"
-  echo "  2) $(t ghost_pipe)"
-  echo "  3) $(t ghost_new_clip)"
-  local c; read -r -p "  $(t choose): " c <&0 || c=""
-  case "$c" in
-    1) _ghost_new "" ;;
-    # pipe читает stdin — без него висел бы на пустом курсоре. Подаём буфер обмена.
-    2) echo "  $(t ghost_pipe_hint)"; pbpaste 2>/dev/null | _run_tool ghostdraft pipe ;;
-    # «новый + скопировать»: для рабочего «написал ключ → вставил в приложение» —
-    # ghostdraft new --clipboard сам кладёт в буфер и чистит его через ~20с.
-    3) _ghost_new --clipboard ;;
-    *) : ;;
-  esac
-  _pause
+# Подменю «Блокнот» (ghostdraft): эфемерная заметка / pipe / new+clipboard. Цикл до «назад»,
+# чтобы не выходить в дашборд после каждого действия (можно сделать несколько подряд).
+_menu_notepad() {
+  while true; do
+    clear 2>/dev/null || true
+    printf '\n  %s%s%s\n\n' "$C_BLD" "$(t h_notepad)" "$C_RST"
+    _menu_item 1 "$(t ghost_new)"      ghostdraft
+    _menu_item 2 "$(t ghost_pipe)"     ghostdraft
+    _menu_item 3 "$(t ghost_new_clip)" ghostdraft
+    printf '  0) %s\n\n' "$(t back)"
+    local c; read -r -p "  $(t choose): " c <&0 || return 0
+    case "$c" in
+      1) _ghost_new "" ; _pause ;;
+      # pipe читает stdin — без него висел бы на пустом курсоре. Подаём буфер обмена.
+      2) echo "  $(t ghost_pipe_hint)"; pbpaste 2>/dev/null | _run_tool ghostdraft pipe; _pause ;;
+      # «новый + скопировать»: для рабочего «написал ключ → вставил в приложение» —
+      # ghostdraft new --clipboard сам кладёт в буфер и чистит его через ~20с.
+      3) _ghost_new --clipboard ; _pause ;;
+      0|q|Q) return 0 ;;
+      *) : ;;
+    esac
+  done
 }
 _act_watch() {
   # Охрана уже активна → п.7 работает как «снять» (toggle). Иначе из меню её было
@@ -373,6 +450,74 @@ _act_watch() {
     _run_tool vaultwatch start "$VAULT_VOLUME"
   fi
   _pause
+}
+
+# Подменю «Сейф»: все операции с контейнером в одном месте (по просьбе Mr.Di — иначе плоское
+# меню было «лопатой»). vaultwatch сторожит ИМЕННО открытый сейф → она тоже здесь, не отдельным
+# блоком. Пункт 1 — динамический по состоянию (нет → создать; закрыт → открыть; открыт → закрыть),
+# переиспользует трёхсостоянийный _act_vault. Деструктив (empty/destroy) — серым при отсутствии
+# securetrash или сейфа; реальные confirm — внутри securetrash.
+_menu_vault() {
+  while true; do
+    local v vw
+    v="$(_status_vault)"; vw="$(_status_vaultwatch)"
+    clear 2>/dev/null || true
+    printf '\n  %s%s%s\n\n' "$C_BLD" "$(t h_vault)" "$C_RST"
+    case "$v" in
+      none)   _menu_item 1 "$(t m_v_create)" securetrash ;;
+      closed) _menu_item 1 "$(t m_v_open)"   securetrash ;;
+      open)   _menu_item 1 "$(t m_v_close)"  securetrash ;;
+    esac
+    # 2 Empty (reset) — серый при отсутствии securetrash / сейфа
+    if ! _tool_installed securetrash; then
+      printf '  %s2) %s (%s)%s\n' "$C_DIM" "$(t m_empty)" "$(t not_installed)" "$C_RST"
+    elif [[ "$v" == none ]]; then
+      printf '  %s2) %s (%s)%s\n' "$C_DIM" "$(t m_empty)" "$(t empty_na)" "$C_RST"
+    else
+      printf '  2) %s\n' "$(t m_empty)"
+    fi
+    # 3 Destroy — серый при отсутствии securetrash / сейфа
+    if ! _tool_installed securetrash; then
+      printf '  %s3) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t not_installed)" "$C_RST"
+    elif [[ "$v" == none ]]; then
+      printf '  %s3) 💣 %s (%s)%s\n' "$C_DIM" "$(t m_destroy)" "$(t destroy_na)" "$C_RST"
+    else
+      printf '  3) 💣 %s\n' "$(t m_destroy)"
+    fi
+    # 4 Watch — toggle (active → снять, иначе → сторожить)
+    if [[ "$vw" == active ]]; then
+      _menu_item 4 "$(t m_unwatch)" vaultwatch
+    else
+      _menu_item 4 "$(t m_watch)"   vaultwatch
+    fi
+    printf '  0) %s\n\n' "$(t back)"
+    local c; read -r -p "  $(t choose): " c <&0 || return 0
+    case "$c" in
+      1) _act_vault ;;
+      2) _act_empty ;;
+      3) _act_destroy ;;
+      4) _act_watch ;;
+      0|q|Q) return 0 ;;
+      *) : ;;
+    esac
+  done
+}
+# Подменю «Секреты» (seedsplit): разбить / собрать. Цикл до «назад».
+_menu_secrets() {
+  while true; do
+    clear 2>/dev/null || true
+    printf '\n  %s%s%s\n\n' "$C_BLD" "$(t h_secrets)" "$C_RST"
+    _menu_item 1 "$(t m_split)"   seedsplit
+    _menu_item 2 "$(t m_combine)" seedsplit
+    printf '  0) %s\n\n' "$(t back)"
+    local c; read -r -p "  $(t choose): " c <&0 || return 0
+    case "$c" in
+      1) _act_split ;;
+      2) _act_combine ;;
+      0|q|Q) return 0 ;;
+      *) : ;;
+    esac
+  done
 }
 
 usage() {
@@ -406,12 +551,9 @@ main() {
     case "$choice" in
       1) _act_status ;;
       2) _act_panic ;;
-      3) _act_vault ;;
-      4) _act_destroy ;;
-      5) _act_split ;;
-      6) _act_combine ;;
-      7) _act_ghost ;;
-      8) _act_watch ;;
+      3) _menu_vault ;;
+      4) _menu_notepad ;;
+      5) _menu_secrets ;;
       0|q|Q) echo; return 0 ;;
       *) : ;;   # неверный ввод → перерисовать меню
     esac

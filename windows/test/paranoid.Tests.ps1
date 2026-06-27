@@ -71,54 +71,65 @@ Describe 'Get-PnDashboard — read-only status text' {
     }
 }
 
-Describe 'Get-PnDashboard — destroy item (4) gating' {
+Describe 'Get-PnVaultMenu — dynamic item 1 + empty/destroy gating + watch toggle' {
     BeforeEach {
         $script:PN_LOCALE = 'en'
-        Mock Get-PnBitLockerState  { 'unknown' }
         Mock Get-PnVaultwatchState { 'idle' }
+        Mock Get-PnVaultMount { $null }
+        Mock Test-PnTool { $true }
     }
 
-    It 'shows the destroy item live when a vault exists and securetrash is present' {
-        Mock Test-PnTool { $true }
-        Mock Get-PnVaultState { 'closed' }
-        $out = Get-PnDashboard
-        ($out -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Match 'Destroy the vault'
-        ($out -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Not -Match 'no vault'
-        ($out -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Not -Match 'not installed'
-    }
-    It 'greys the destroy item with (no vault) when no container exists' {
-        Mock Test-PnTool { $true }
+    It 'item 1 reads "Create a vault" when none' {
         Mock Get-PnVaultState { 'none' }
-        $out = Get-PnDashboard
-        ($out -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Match 'no vault'
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '1\)' }) | Should -Match 'Create a vault'
     }
-    It 'greys the destroy item with (not installed) when securetrash is absent' {
-        Mock Test-PnTool { $false } -ParameterFilter { $Tool -eq 'securetrash' }
-        Mock Test-PnTool { $true }
+    It 'item 1 reads "Open the vault" when closed' {
         Mock Get-PnVaultState { 'closed' }
-        $out = Get-PnDashboard
-        ($out -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Match 'not installed'
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '1\)' }) | Should -Match 'Open the vault'
+    }
+    It 'item 1 reads "Close the vault" when open' {
+        Mock Get-PnVaultState { 'open' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '1\)' }) | Should -Match 'Close the vault'
+    }
+    It 'empty (2) is live when a vault exists' {
+        Mock Get-PnVaultState { 'closed' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '2\)' }) | Should -Match 'Empty'
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '2\)' }) | Should -Not -Match 'no vault'
+    }
+    It 'empty (2) greyed (no vault) when none' {
+        Mock Get-PnVaultState { 'none' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '2\)' }) | Should -Match 'no vault'
+    }
+    It 'destroy (3) greyed (not installed) when securetrash absent' {
+        Mock Test-PnTool { $false } -ParameterFilter { $Tool -eq 'securetrash' }
+        Mock Get-PnVaultState { 'closed' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '3\)' }) | Should -Match 'not installed'
+    }
+    It 'watch (4) shows "Watch vault" when idle' {
+        Mock Get-PnVaultState { 'closed' }
+        Mock Get-PnVaultwatchState { 'idle' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Match 'Watch vault'
+    }
+    It 'watch (4) shows "Stop watching" when active' {
+        Mock Get-PnVaultState { 'closed' }
+        Mock Get-PnVaultwatchState { 'active' }
+        ((Get-PnVaultMenu) -split "`n" | Where-Object { $_ -match '4\)' }) | Should -Match 'Stop watching'
     }
 }
 
-Describe 'Get-PnDashboard — watch item (8) toggle label' {
+Describe 'Get-PnDashboard — top-level submenu groups' {
     BeforeEach {
         $script:PN_LOCALE = 'en'
         Mock Get-PnBitLockerState { 'unknown' }
-        Mock Test-PnTool { $true }
-        Mock Get-PnVaultState { 'closed' }
-    }
-
-    It 'shows "Watch vault" when vaultwatch is idle' {
         Mock Get-PnVaultwatchState { 'idle' }
-        $out = Get-PnDashboard
-        ($out -split "`n" | Where-Object { $_ -match '8\)' }) | Should -Match 'Watch vault'
+        Mock Get-PnVaultState { 'closed' }
+        Mock Test-PnTool { $true }
     }
-    It 'shows "Stop watching" when vaultwatch is active' {
-        Mock Get-PnVaultwatchState { 'active' }
-        Mock Get-PnVaultwatchTtl { '' }
+    It 'shows the three submenu groups (Vault / Notepad / Secrets)' {
         $out = Get-PnDashboard
-        ($out -split "`n" | Where-Object { $_ -match '8\)' }) | Should -Match 'Stop watching'
+        $out | Should -Match 'Vault >'
+        $out | Should -Match 'Notepad >'
+        $out | Should -Match 'Secrets >'
     }
 }
 
@@ -252,70 +263,111 @@ Describe 'dispatch — panic (choice 2)' {
     }
 }
 
-Describe 'dispatch — vault (choice 3)' {
+Describe 'top dispatch routes groups to submenu loops (3/4/5)' {
+    BeforeEach {
+        Mock Invoke-PnMenuVault { }
+        Mock Invoke-PnMenuNotepad { }
+        Mock Invoke-PnMenuSecrets { }
+    }
+    It 'choice 3 opens the vault submenu' {
+        Invoke-PnDispatch '3' | Should -BeFalse
+        Should -Invoke Invoke-PnMenuVault -Times 1 -Exactly
+    }
+    It 'choice 4 opens the notepad submenu' {
+        Invoke-PnDispatch '4' | Out-Null
+        Should -Invoke Invoke-PnMenuNotepad -Times 1 -Exactly
+    }
+    It 'choice 5 opens the secrets submenu' {
+        Invoke-PnDispatch '5' | Out-Null
+        Should -Invoke Invoke-PnMenuSecrets -Times 1 -Exactly
+    }
+}
+
+Describe 'vault submenu dispatch — open/close/create smart (item 1) + size' {
     BeforeEach {
         Mock Invoke-PnTool { }
         Mock Invoke-PnPause { }
+        $script:PN_LOCALE = 'en'
     }
 
     It 'closes the vault when it is open' {
         Mock Get-PnVaultState { 'open' }
-        Invoke-PnDispatch '3' | Out-Null
+        Invoke-PnVaultDispatch '1' | Should -BeFalse
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'securetrash' -and ($ToolArgs -contains 'vault') -and ($ToolArgs -contains 'close')
         }
     }
-
     It 'opens the vault when it is closed' {
         Mock Get-PnVaultState { 'closed' }
-        Invoke-PnDispatch '3' | Out-Null
+        Invoke-PnVaultDispatch '1' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'securetrash' -and ($ToolArgs -contains 'vault') -and ($ToolArgs -contains 'open')
         }
     }
-
-    It 'creates the vault when none exists yet' {
+    It 'creates the vault (default size) when none and size empty' {
         Mock Get-PnVaultState { 'none' }
-        Invoke-PnDispatch '3' | Out-Null
+        Mock Read-PnLine { '' }
+        Invoke-PnVaultDispatch '1' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'vault') -and ($ToolArgs -contains 'create')
+            $Tool -eq 'securetrash' -and (($ToolArgs -join ' ') -eq 'vault create')
         }
+    }
+    It 'creates the vault with a chosen MB size cap' {
+        Mock Get-PnVaultState { 'none' }
+        Mock Read-PnLine { '5120' }
+        Invoke-PnVaultDispatch '1' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'create') -and ($ToolArgs -contains '5120')
+        }
+    }
+    It 'invalid size cancels create (nothing dispatched)' {
+        Mock Get-PnVaultState { 'none' }
+        Mock Read-PnLine { 'big' }
+        Invoke-PnVaultDispatch '1' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 0 -Exactly
     }
 }
 
-Describe 'dispatch — status, split, combine (choices 1/5/6)' {
+Describe 'vault submenu dispatch — empty=reset (item 2)' {
     BeforeEach {
         Mock Invoke-PnTool { }
         Mock Invoke-PnPause { }
-        Mock Test-PnTool { $true }
+        $script:PN_LOCALE = 'en'
     }
 
-    It 'choice 1 runs securetrash check (and vaultwatch status)' {
-        Invoke-PnDispatch '1' | Out-Null
+    It 'runs securetrash vault reset (default size) when a vault exists' {
+        Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
+        Mock Get-PnVaultState { 'closed' }
+        Mock Read-PnLine { '' }
+        Invoke-PnVaultDispatch '2' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'check')
-        }
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'vaultwatch' -and ($ToolArgs -contains 'status')
-        }
-    }
-
-    It 'choice 5 runs seedsplit split' {
-        Invoke-PnDispatch '5' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'seedsplit' -and ($ToolArgs -contains 'split')
+            $Tool -eq 'securetrash' -and (($ToolArgs -join ' ') -eq 'vault reset')
         }
     }
-
-    It 'choice 6 runs seedsplit combine' {
-        Invoke-PnDispatch '6' | Out-Null
+    It 'passes a chosen size to reset' {
+        Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
+        Mock Get-PnVaultState { 'closed' }
+        Mock Read-PnLine { '2048' }
+        Invoke-PnVaultDispatch '2' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'seedsplit' -and ($ToolArgs -contains 'combine')
+            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'reset') -and ($ToolArgs -contains '2048')
         }
+    }
+    It 'is a no-op when there is no vault' {
+        Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
+        Mock Get-PnVaultState { 'none' }
+        Invoke-PnVaultDispatch '2' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 0 -Exactly
+    }
+    It 'when securetrash is absent, runs nothing' {
+        Mock Test-PnTool { $false } -ParameterFilter { $Tool -eq 'securetrash' }
+        Mock Get-PnVaultState { 'closed' }
+        Invoke-PnVaultDispatch '2' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 0 -Exactly
     }
 }
 
-Describe 'dispatch — destroy (choice 4)' {
+Describe 'vault submenu dispatch — destroy (item 3)' {
     BeforeEach {
         Mock Invoke-PnTool { }
         Mock Invoke-PnPause { }
@@ -325,75 +377,26 @@ Describe 'dispatch — destroy (choice 4)' {
     It 'runs securetrash vault destroy when a vault exists' {
         Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
         Mock Get-PnVaultState { 'closed' }
-        Invoke-PnDispatch '4' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'vault') -and ($ToolArgs -contains 'destroy')
-        }
-    }
-
-    It 'destroys an open vault too (securetrash gates the mounted case)' {
-        Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
-        Mock Get-PnVaultState { 'open' }
-        Invoke-PnDispatch '4' | Out-Null
+        Invoke-PnVaultDispatch '3' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'securetrash' -and ($ToolArgs -contains 'destroy')
         }
     }
-
-    It 'does nothing when there is no vault (none state)' {
+    It 'is a no-op when there is no vault' {
         Mock Test-PnTool { $true } -ParameterFilter { $Tool -eq 'securetrash' }
         Mock Get-PnVaultState { 'none' }
-        Invoke-PnDispatch '4' | Out-Null
+        Invoke-PnVaultDispatch '3' | Out-Null
         Should -Invoke Invoke-PnTool -Times 0 -Exactly
     }
-
-    It 'when securetrash is absent, runs nothing and does not read vault state' {
+    It 'when securetrash absent, runs nothing' {
         Mock Test-PnTool { $false } -ParameterFilter { $Tool -eq 'securetrash' }
         Mock Get-PnVaultState { 'closed' }
-        Invoke-PnDispatch '4' | Out-Null
+        Invoke-PnVaultDispatch '3' | Out-Null
         Should -Invoke Invoke-PnTool -Times 0 -Exactly
     }
 }
 
-Describe 'dispatch — ghost submenu (choice 7)' {
-    BeforeEach {
-        Mock Invoke-PnTool { }
-        Mock Invoke-PnPause { }
-        $script:PN_LOCALE = 'en'
-    }
-
-    It 'submenu 1 runs ghostdraft new' {
-        Mock Read-PnLine { '1' }
-        Invoke-PnDispatch '7' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'new') -and (-not ($ToolArgs -contains '--clipboard'))
-        }
-    }
-
-    It 'submenu 2 runs ghostdraft pipe' {
-        Mock Read-PnLine { '2' }
-        Invoke-PnDispatch '7' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'pipe')
-        }
-    }
-
-    It 'submenu 3 runs ghostdraft new --clipboard' {
-        Mock Read-PnLine { '3' }
-        Invoke-PnDispatch '7' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
-            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'new') -and ($ToolArgs -contains '--clipboard')
-        }
-    }
-
-    It 'an unknown submenu choice runs nothing' {
-        Mock Read-PnLine { 'x' }
-        Invoke-PnDispatch '7' | Out-Null
-        Should -Invoke Invoke-PnTool -Times 0 -Exactly
-    }
-}
-
-Describe 'dispatch — watch toggle (choice 8)' {
+Describe 'vault submenu dispatch — watch toggle (item 4)' {
     BeforeEach {
         Mock Invoke-PnTool { }
         Mock Invoke-PnPause { }
@@ -406,33 +409,92 @@ Describe 'dispatch — watch toggle (choice 8)' {
     It 'passes --ttl when a duration is entered (idle → start)' {
         Mock Get-PnVaultwatchState { 'idle' }
         Mock Read-PnLine { '30m' }
-        Invoke-PnDispatch '8' | Out-Null
+        Invoke-PnVaultDispatch '4' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'vaultwatch' -and ($ToolArgs -contains 'start') -and
-            ($ToolArgs -contains '--ttl') -and ($ToolArgs -contains '30m') -and
-            ($ToolArgs -contains 'V:\')
+            ($ToolArgs -contains '--ttl') -and ($ToolArgs -contains '30m') -and ($ToolArgs -contains 'V:\')
         }
     }
-
     It 'omits --ttl when the duration is empty (idle → start)' {
         Mock Get-PnVaultwatchState { 'idle' }
         Mock Read-PnLine { '' }
-        Invoke-PnDispatch '8' | Out-Null
+        Invoke-PnVaultDispatch '4' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'vaultwatch' -and ($ToolArgs -contains 'start') -and
             ($ToolArgs -contains 'V:\') -and (-not ($ToolArgs -contains '--ttl'))
         }
     }
-
-    It 'stops the watch when one is already active (active → stop, no TTL prompt)' {
+    It 'stops the watch when already active (active → stop, no TTL prompt)' {
         Mock Get-PnVaultwatchState { 'active' }
-        Mock Read-PnLine { '30m' }   # не должен спрашиваться при активной охране
-        Invoke-PnDispatch '8' | Out-Null
+        Mock Read-PnLine { '30m' }
+        Invoke-PnVaultDispatch '4' | Out-Null
         Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
             $Tool -eq 'vaultwatch' -and ($ToolArgs -contains 'stop') -and ($ToolArgs -contains 'V:\')
         }
         Should -Invoke Read-PnLine -Times 0 -Exactly
     }
+    It 'returns $true on back (0)' { (Invoke-PnVaultDispatch '0') | Should -BeTrue }
+}
+
+Describe 'notepad submenu dispatch (ghostdraft)' {
+    BeforeEach {
+        Mock Invoke-PnTool { }
+        Mock Invoke-PnPause { }
+        $script:PN_LOCALE = 'en'
+    }
+    It '1 runs ghostdraft new' {
+        Invoke-PnNotepadDispatch '1' | Should -BeFalse
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'new') -and (-not ($ToolArgs -contains '--clipboard'))
+        }
+    }
+    It '2 runs ghostdraft pipe' {
+        Invoke-PnNotepadDispatch '2' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'pipe')
+        }
+    }
+    It '3 runs ghostdraft new --clipboard' {
+        Invoke-PnNotepadDispatch '3' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'ghostdraft' -and ($ToolArgs -contains 'new') -and ($ToolArgs -contains '--clipboard')
+        }
+    }
+    It 'unknown choice runs nothing' {
+        Invoke-PnNotepadDispatch 'x' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 0 -Exactly
+    }
+    It 'returns $true on back (0)' { (Invoke-PnNotepadDispatch '0') | Should -BeTrue }
+}
+
+Describe 'secrets submenu dispatch (seedsplit) + status (top 1)' {
+    BeforeEach {
+        Mock Invoke-PnTool { }
+        Mock Invoke-PnPause { }
+        Mock Test-PnTool { $true }
+    }
+    It 'top choice 1 runs securetrash check (and vaultwatch status)' {
+        Invoke-PnDispatch '1' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'securetrash' -and ($ToolArgs -contains 'check')
+        }
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'vaultwatch' -and ($ToolArgs -contains 'status')
+        }
+    }
+    It 'secrets 1 runs seedsplit split' {
+        Invoke-PnSecretsDispatch '1' | Should -BeFalse
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'seedsplit' -and ($ToolArgs -contains 'split')
+        }
+    }
+    It 'secrets 2 runs seedsplit combine' {
+        Invoke-PnSecretsDispatch '2' | Out-Null
+        Should -Invoke Invoke-PnTool -Times 1 -Exactly -ParameterFilter {
+            $Tool -eq 'seedsplit' -and ($ToolArgs -contains 'combine')
+        }
+    }
+    It 'returns $true on back (0)' { (Invoke-PnSecretsDispatch '0') | Should -BeTrue }
 }
 
 Describe 'dispatch — quit and unknown' {

@@ -84,6 +84,38 @@ function T {
         'en:m_unwatch'    { return 'Stop watching the vault (vaultwatch)' }
         'ru:m_unwatch'    { return 'Снять охрану сейфа (vaultwatch)' }
         'en:m_quit'       { return 'Quit' }         'ru:m_quit'       { return 'Выход' }
+        # --- top-level group items (открывают подменю) ---
+        'en:m_t_vault'   { return 'Vault >        open / empty / destroy / watch' }
+        'ru:m_t_vault'   { return 'Сейф >         открыть / очистить / уничтожить / сторожить' }
+        'en:m_t_notepad' { return 'Notepad >      ghostdraft: ephemeral note / clipboard' }
+        'ru:m_t_notepad' { return 'Блокнот >      ghostdraft: эфемерная заметка / буфер' }
+        'en:m_t_secrets' { return 'Secrets >      seedsplit: split / combine' }
+        'ru:m_t_secrets' { return 'Секреты >      seedsplit: разбить / собрать' }
+        'en:back'        { return 'Back' }          'ru:back'        { return 'Назад' }
+        # --- подменю-заголовки ---
+        'en:h_vault'     { return 'Vault — encrypted container' }
+        'ru:h_vault'     { return 'Сейф — зашифрованный контейнер' }
+        'en:h_notepad'   { return 'Notepad — ephemeral text (ghostdraft)' }
+        'ru:h_notepad'   { return 'Блокнот — эфемерный текст (ghostdraft)' }
+        'en:h_secrets'   { return 'Secrets — Shamir shares (seedsplit)' }
+        'ru:h_secrets'   { return 'Секреты — доли Шамира (seedsplit)' }
+        # --- vault submenu: динамический пункт 1 по состоянию ---
+        'en:m_v_create'  { return 'Create a vault' }  'ru:m_v_create'  { return 'Создать сейф' }
+        'en:m_v_open'    { return 'Open the vault' }   'ru:m_v_open'    { return 'Открыть сейф' }
+        'en:m_v_close'   { return 'Close the vault' }  'ru:m_v_close'   { return 'Закрыть сейф' }
+        # --- empty (= securetrash vault reset) ---
+        'en:m_empty'     { return 'Empty — wipe contents, keep the vault (crypto-shred)' }
+        'ru:m_empty'     { return 'Очистить — стереть содержимое, сейф оставить (crypto-shred)' }
+        'en:empty_na'    { return 'no vault' }        'ru:empty_na'    { return 'нет сейфа' }
+        'en:empty_none'  { return 'No vault to empty — create one first.' }
+        'ru:empty_none'  { return 'Очищать нечего — сначала создай сейф.' }
+        'en:empty_hint'  { return 'This destroys everything inside and recreates an EMPTY vault — a real crypto-shred guarantee (unlike wiping files in place). securetrash will ask you to confirm with "yes" and set a password for the fresh vault.' }
+        'ru:empty_hint'  { return 'Это уничтожит всё внутри и создаст ПУСТОЙ сейф заново — настоящая crypto-shred гарантия (в отличие от перезаписи файлов на месте). securetrash попросит подтвердить «yes» и задать пароль нового сейфа.' }
+        # --- выбор размера (Windows: МБ для diskpart; cap, не резерв) ---
+        'en:size_prompt' { return 'Vault size cap in MB (e.g. 1024 = 1 GB; empty = default 1024 MB). A ceiling, not reserved space — the VHDX grows as you add files:' }
+        'ru:size_prompt' { return 'Потолок размера сейфа в МБ (напр. 1024 = 1 ГБ; пусто = по умолчанию 1024 МБ). Это лимит, не резерв — VHDX растёт по мере добавления файлов:' }
+        'en:size_bad'    { return 'Invalid size — use a whole number of megabytes (e.g. 1024, 5120). Cancelled.' }
+        'ru:size_bad'    { return 'Неверный размер — целое число мегабайт (напр. 1024, 5120). Отменено.' }
         'en:not_installed'{ return 'not installed' } 'ru:not_installed'{ return 'не установлен' }
         'en:install_hint' { return "Install ${A}: $B" }   'ru:install_hint' { return "Установить ${A}: $B" }
         'en:choose'       { return 'Choose' }       'ru:choose'       { return 'Выбор' }
@@ -219,26 +251,82 @@ function Get-PnDashboard {
     } else {
         $lines += "  2) $(T 'm_panic') ($(T 'not_installed'))"
     }
-    $lines += (Format-PnMenuItem 3 (T 'm_vault')   'securetrash')
-    # П.4 Destroy — необратимо. «(not installed)», если securetrash нет; «(no vault)», если
-    # контейнера ещё нет (нечего уничтожать) — иначе пункт вёл бы в тупик «нет сейфа».
-    if (-not (Test-PnTool 'securetrash')) {
-        $lines += "  4) $(T 'm_destroy') ($(T 'not_installed'))"
-    } elseif ($v -eq 'none') {
-        $lines += "  4) $(T 'm_destroy') ($(T 'destroy_na'))"
-    } else {
-        $lines += "  4) $(T 'm_destroy')"
-    }
-    $lines += (Format-PnMenuItem 5 (T 'm_split')   'seedsplit')
-    $lines += (Format-PnMenuItem 6 (T 'm_combine') 'seedsplit')
-    $lines += (Format-PnMenuItem 7 (T 'm_ghost')   'ghostdraft')
-    # П.8 — toggle: активна охрана → «снять», иначе → «сторожить» (иначе из меню не выключить).
-    if ($vw -eq 'active') {
-        $lines += (Format-PnMenuItem 8 (T 'm_unwatch') 'vaultwatch')
-    } else {
-        $lines += (Format-PnMenuItem 8 (T 'm_watch')   'vaultwatch')
-    }
+    # Группы-подменю (3–5). Top-level короткий: чтение (1) и тревога (2) — мгновенно наверху;
+    # остальное сгруппировано. Пункты внутри подменю гасятся при отсутствии тула, поэтому
+    # группы тут всегда активны. $v/$vw используются в рендере подменю, не здесь.
+    $lines += "  3) $(T 'm_t_vault')"
+    $lines += "  4) $(T 'm_t_notepad')"
+    $lines += "  5) $(T 'm_t_secrets')"
     $lines += "  0) $(T 'm_quit')"
+    $lines += ''
+    return ($lines -join "`n")
+}
+
+# Текст подменю «Сейф» (Pester проверяет динамический пункт 1, гейтинг empty/destroy, toggle).
+function Get-PnVaultMenu {
+    $script:VAULT_VOLUME = Get-PnVaultMount
+    $v  = Get-PnVaultState
+    $vw = Get-PnVaultwatchState
+    $lines = @()
+    $lines += ''
+    $lines += "  $(T 'h_vault')"
+    $lines += ''
+    # 1 — динамический по состоянию (нет → создать; закрыт → открыть; открыт → закрыть)
+    switch ($v) {
+        'none'   { $lines += (Format-PnMenuItem 1 (T 'm_v_create') 'securetrash') }
+        'closed' { $lines += (Format-PnMenuItem 1 (T 'm_v_open')   'securetrash') }
+        'open'   { $lines += (Format-PnMenuItem 1 (T 'm_v_close')  'securetrash') }
+    }
+    # 2 Empty (reset) — серый при отсутствии securetrash / сейфа
+    if (-not (Test-PnTool 'securetrash')) {
+        $lines += "  2) $(T 'm_empty') ($(T 'not_installed'))"
+    } elseif ($v -eq 'none') {
+        $lines += "  2) $(T 'm_empty') ($(T 'empty_na'))"
+    } else {
+        $lines += "  2) $(T 'm_empty')"
+    }
+    # 3 Destroy — серый при отсутствии securetrash / сейфа
+    if (-not (Test-PnTool 'securetrash')) {
+        $lines += "  3) $(T 'm_destroy') ($(T 'not_installed'))"
+    } elseif ($v -eq 'none') {
+        $lines += "  3) $(T 'm_destroy') ($(T 'destroy_na'))"
+    } else {
+        $lines += "  3) $(T 'm_destroy')"
+    }
+    # 4 Watch — toggle
+    if ($vw -eq 'active') {
+        $lines += (Format-PnMenuItem 4 (T 'm_unwatch') 'vaultwatch')
+    } else {
+        $lines += (Format-PnMenuItem 4 (T 'm_watch')   'vaultwatch')
+    }
+    $lines += "  0) $(T 'back')"
+    $lines += ''
+    return ($lines -join "`n")
+}
+
+# Текст подменю «Блокнот» (ghostdraft).
+function Get-PnNotepadMenu {
+    $lines = @()
+    $lines += ''
+    $lines += "  $(T 'h_notepad')"
+    $lines += ''
+    $lines += (Format-PnMenuItem 1 (T 'ghost_new')      'ghostdraft')
+    $lines += (Format-PnMenuItem 2 (T 'ghost_pipe')     'ghostdraft')
+    $lines += (Format-PnMenuItem 3 (T 'ghost_new_clip') 'ghostdraft')
+    $lines += "  0) $(T 'back')"
+    $lines += ''
+    return ($lines -join "`n")
+}
+
+# Текст подменю «Секреты» (seedsplit).
+function Get-PnSecretsMenu {
+    $lines = @()
+    $lines += ''
+    $lines += "  $(T 'h_secrets')"
+    $lines += ''
+    $lines += (Format-PnMenuItem 1 (T 'm_split')   'seedsplit')
+    $lines += (Format-PnMenuItem 2 (T 'm_combine') 'seedsplit')
+    $lines += "  0) $(T 'back')"
     $lines += ''
     return ($lines -join "`n")
 }
@@ -277,13 +365,33 @@ function Invoke-PnActPanic {
     Invoke-PnTool 'panic' $pargs
     Invoke-PnPause
 }
+# Спросить потолок размера нового сейфа (Windows: целое МБ для diskpart). Возвращает строку
+# размера; '' = дефолт тула; $null = неверный ввод (caller отменяет create/reset). VHDX тонкий
+# → это лимит, не резерв. Мокается в Pester.
+function Read-PnVaultSize {
+    $size = Read-PnLine "  $(T 'size_prompt')"
+    if (-not $size) { return '' }
+    if ($size -notmatch '^\d+$') {
+        # ВАЖНО: сообщение в stderr, НЕ Write-Output — иначе строка попала бы в пайплайн
+        # возврата и $sz стал бы массивом @(msg,$null), а не $null (caller не отменил бы create).
+        [Console]::Error.WriteLine("  $(T 'size_bad')")
+        return $null
+    }
+    return $size
+}
 function Invoke-PnActVault {
-    # Трёхсостоянийно: нет контейнера → создать (иначе пользователь упирался в тупик
-    # «нет контейнера» без видимого пути к созданию). securetrash сама спросит размер/пароль.
+    # Трёхсостоянийно: нет контейнера → создать (спросив размер-cap); закрыт → открыть; открыт → закрыть.
     switch (Get-PnVaultState) {
         'open'   { Invoke-PnTool 'securetrash' @('vault', 'close') }
         'closed' { Invoke-PnTool 'securetrash' @('vault', 'open') }
-        'none'   { Write-Output "  $(T 'vault_setup_hint')"; Invoke-PnTool 'securetrash' @('vault', 'create') }
+        'none'   {
+            Write-Output "  $(T 'vault_setup_hint')"
+            $sz = Read-PnVaultSize
+            if ($null -ne $sz) {
+                $a = @('vault', 'create'); if ($sz) { $a += $sz }
+                Invoke-PnTool 'securetrash' $a
+            }
+        }
     }
     Invoke-PnPause
 }
@@ -301,22 +409,32 @@ function Invoke-PnActDestroy {
     Invoke-PnTool 'securetrash' @('vault', 'destroy')
     Invoke-PnPause
 }
-function Invoke-PnActSplit   { Invoke-PnTool 'seedsplit' @('split');   Invoke-PnPause }
-function Invoke-PnActCombine { Invoke-PnTool 'seedsplit' @('combine'); Invoke-PnPause }
-function Invoke-PnActGhost {
-    Write-Output "  1) $(T 'ghost_new')"
-    Write-Output "  2) $(T 'ghost_pipe')"
-    Write-Output "  3) $(T 'ghost_new_clip')"
-    switch (Read-PnLine "  $(T 'choose')") {
-        '1' { Invoke-PnTool 'ghostdraft' @('new') }
-        '2' { Invoke-PnTool 'ghostdraft' @('pipe') }
-        # «новый + в буфер»: ghostdraft new --clipboard сам предупреждает (DANGER) и просит
-        # confirm. На Windows авто-очистки буфера НЕТ — лаунчер дублирует caveat честной подписью.
-        '3' { Write-Output "  $(T 'ghost_clip_hint')"; Invoke-PnTool 'ghostdraft' @('new', '--clipboard') }
-        default { }
+# Очистить сейф = securetrash vault reset (crypto-shred + создать пустой заново). Честная
+# гарантия безвозвратности (in-place перезапись на SSD — best-effort: тот же ключ). Запрос
+# размера нового сейфа; реальный yes-confirm и пароль — на стороне securetrash.
+function Invoke-PnActEmpty {
+    if (-not (Test-PnTool 'securetrash')) {
+        [Console]::Error.WriteLine((T 'install_hint' 'securetrash' (Get-PnToolRepo 'securetrash')))
+        Invoke-PnPause; return
+    }
+    if ((Get-PnVaultState) -eq 'none') {
+        Write-Output "  $(T 'empty_none')"; Invoke-PnPause; return
+    }
+    Write-Output "  $(T 'empty_hint')"
+    $sz = Read-PnVaultSize
+    if ($null -ne $sz) {
+        $a = @('vault', 'reset'); if ($sz) { $a += $sz }
+        Invoke-PnTool 'securetrash' $a
     }
     Invoke-PnPause
 }
+function Invoke-PnActSplit   { Invoke-PnTool 'seedsplit' @('split');   Invoke-PnPause }
+function Invoke-PnActCombine { Invoke-PnTool 'seedsplit' @('combine'); Invoke-PnPause }
+# Ghost-действия (из notepad-подменю). new --clipboard: ghostdraft сам показывает DANGER +
+# confirm; на Windows авто-очистки буфера НЕТ — лаунчер дублирует caveat честной подписью.
+function Invoke-PnActGhostNew  { Invoke-PnTool 'ghostdraft' @('new') }
+function Invoke-PnActGhostPipe { Invoke-PnTool 'ghostdraft' @('pipe') }
+function Invoke-PnActGhostClip { Write-Output "  $(T 'ghost_clip_hint')"; Invoke-PnTool 'ghostdraft' @('new', '--clipboard') }
 function Invoke-PnActWatch {
     # Перечитываем активную букву прямо здесь (как делает Get-PnDashboard): на Windows том
     # монтируется на ПЕРВУЮ свободную букву динамически, и она могла появиться/смениться с
@@ -334,18 +452,79 @@ function Invoke-PnActWatch {
     Invoke-PnPause
 }
 
-# Диспетчер одного выбора (Pester зовёт напрямую). Возвращает $true, если пора выходить.
+# --- диспетчеры подменю (Pester зовёт напрямую). Возвращают $true = «назад». ---
+function Invoke-PnVaultDispatch {
+    param([string]$Choice)
+    switch ($Choice) {
+        '1' { Invoke-PnActVault }
+        '2' { Invoke-PnActEmpty }
+        '3' { Invoke-PnActDestroy }
+        '4' { Invoke-PnActWatch }
+        { $_ -in '0', 'q', 'Q' } { return $true }
+        default { }
+    }
+    return $false
+}
+function Invoke-PnNotepadDispatch {
+    param([string]$Choice)
+    switch ($Choice) {
+        '1' { Invoke-PnActGhostNew;  Invoke-PnPause }
+        '2' { Invoke-PnActGhostPipe; Invoke-PnPause }
+        '3' { Invoke-PnActGhostClip; Invoke-PnPause }
+        { $_ -in '0', 'q', 'Q' } { return $true }
+        default { }
+    }
+    return $false
+}
+function Invoke-PnSecretsDispatch {
+    param([string]$Choice)
+    switch ($Choice) {
+        '1' { Invoke-PnActSplit }
+        '2' { Invoke-PnActCombine }
+        { $_ -in '0', 'q', 'Q' } { return $true }
+        default { }
+    }
+    return $false
+}
+
+# --- циклы подменю (рендер + read + dispatch до «назад»/EOF) ---
+function Invoke-PnMenuVault {
+    while ($true) {
+        Clear-Host
+        Write-Output (Get-PnVaultMenu)
+        $c = Read-PnLine "  $(T 'choose')"
+        if ($null -eq $c) { break }
+        if (Invoke-PnVaultDispatch $c) { break }
+    }
+}
+function Invoke-PnMenuNotepad {
+    while ($true) {
+        Clear-Host
+        Write-Output (Get-PnNotepadMenu)
+        $c = Read-PnLine "  $(T 'choose')"
+        if ($null -eq $c) { break }
+        if (Invoke-PnNotepadDispatch $c) { break }
+    }
+}
+function Invoke-PnMenuSecrets {
+    while ($true) {
+        Clear-Host
+        Write-Output (Get-PnSecretsMenu)
+        $c = Read-PnLine "  $(T 'choose')"
+        if ($null -eq $c) { break }
+        if (Invoke-PnSecretsDispatch $c) { break }
+    }
+}
+
+# Топ-диспетчер (Pester зовёт напрямую). Возвращает $true, если пора выходить.
 function Invoke-PnDispatch {
     param([string]$Choice)
     switch ($Choice) {
         '1' { Invoke-PnActStatus }
         '2' { Invoke-PnActPanic }
-        '3' { Invoke-PnActVault }
-        '4' { Invoke-PnActDestroy }
-        '5' { Invoke-PnActSplit }
-        '6' { Invoke-PnActCombine }
-        '7' { Invoke-PnActGhost }
-        '8' { Invoke-PnActWatch }
+        '3' { Invoke-PnMenuVault }
+        '4' { Invoke-PnMenuNotepad }
+        '5' { Invoke-PnMenuSecrets }
         { $_ -in '0', 'q', 'Q' } { return $true }
         default { }   # неверный ввод → перерисовать меню
     }

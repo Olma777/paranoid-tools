@@ -132,107 +132,144 @@ run_paranoid() {
   [[ "$output" == *"github.com/Di-kairos/panic"* ]]
 }
 
-# --- сейф (пункт 3) ---
+# --- сейф: подменю (пункт 3 → ...) ---
 
-@test "vault not set up (no container) -> dispatches 'securetrash vault create'" {
-  run_paranoid $'3\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+@test "vault submenu: no container -> dispatches 'securetrash vault create'" {
+  # ввод после '1': пустой размер (дефолт) + пустая пауза
+  run_paranoid $'3\n1\n\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
   [ "$status" -eq 0 ]
   grep -qx "securetrash vault create" "$LOG"
   ! grep -q "vault open" "$LOG"
   ! grep -q "vault close" "$LOG"
 }
 
-@test "vault closed (container exists, unmounted) -> dispatches 'securetrash vault open'" {
+@test "vault create passes a chosen size cap to securetrash" {
+  run_paranoid $'3\n1\n5g\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+  [ "$status" -eq 0 ]
+  grep -qx "securetrash vault create 5g" "$LOG"
+}
+
+@test "vault create with an invalid size cancels (no create dispatched)" {
+  run_paranoid $'3\n1\nbig\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+  [ "$status" -eq 0 ]
+  ! grep -q "vault create" "$LOG"
+  [[ "$output" == *"Invalid size"* ]]
+}
+
+@test "vault submenu: closed -> dispatches 'securetrash vault open'" {
   touch "$TMP/container.sparsebundle"
-  run_paranoid $'3\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  run_paranoid $'3\n1\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
   [ "$status" -eq 0 ]
   grep -qx "securetrash vault open" "$LOG"
   ! grep -q "vault close" "$LOG"
   ! grep -q "vault create" "$LOG"
 }
 
-@test "vault open -> dispatches 'securetrash vault close'" {
+@test "vault submenu: open -> dispatches 'securetrash vault close'" {
   mkdir -p "$TMP/vault"
-  run_paranoid $'3\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'3\n1\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "securetrash vault close" "$LOG"
   ! grep -q "vault open" "$LOG"
   ! grep -q "vault create" "$LOG"
 }
 
-# --- destroy vault (пункт 4) ---
+# --- сейф: empty = vault reset (подменю 3 → 2) ---
 
-@test "menu 4 dispatches 'securetrash vault destroy' when a vault exists" {
+@test "vault submenu 2 dispatches 'securetrash vault reset' when a vault exists" {
   touch "$TMP/container.sparsebundle"
-  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  # после '2': пустой размер (дефолт) + пустая пауза
+  run_paranoid $'3\n2\n\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  [ "$status" -eq 0 ]
+  grep -qx "securetrash vault reset" "$LOG"
+}
+
+@test "vault empty warns it crypto-shreds and recreates" {
+  touch "$TMP/container.sparsebundle"
+  run_paranoid $'3\n2\n\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"crypto-shred"* ]]
+}
+
+@test "vault empty is a no-op when there is no vault (no dead-end)" {
+  run_paranoid $'3\n2\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+  [ "$status" -eq 0 ]
+  ! grep -q "vault reset" "$LOG"
+}
+
+# --- сейф: destroy (подменю 3 → 3) ---
+
+@test "vault submenu 3 dispatches 'securetrash vault destroy' when a vault exists" {
+  touch "$TMP/container.sparsebundle"
+  run_paranoid $'3\n3\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
   [ "$status" -eq 0 ]
   grep -qx "securetrash vault destroy" "$LOG"
 }
 
-@test "menu 4 warns before destroy (irreversible)" {
+@test "vault destroy warns before destroy (irreversible)" {
   touch "$TMP/container.sparsebundle"
-  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
+  run_paranoid $'3\n3\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/container.sparsebundle"
   [ "$status" -eq 0 ]
   [[ "$output" == *"permanently"* ]]
 }
 
-@test "menu 4 is a no-op when there is no vault (no dead-end)" {
-  run_paranoid $'4\n\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
+@test "vault destroy is a no-op when there is no vault (no dead-end)" {
+  run_paranoid $'3\n3\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/nope" ST_VAULT_PATH="$TMP/no-container-$RANDOM"
   [ "$status" -eq 0 ]
   ! grep -q "vault destroy" "$LOG"
 }
 
-# --- seedsplit (пункты 5/6) ---
+# --- секреты: подменю (пункт 5 → ...) ---
 
-@test "menu 5 dispatches 'seedsplit split'" {
-  run_paranoid $'5\n\n0\n'
+@test "secrets submenu 1 dispatches 'seedsplit split'" {
+  run_paranoid $'5\n1\n\n0\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "seedsplit split" "$LOG"
 }
 
-@test "menu 6 dispatches 'seedsplit combine'" {
-  run_paranoid $'6\n\n0\n'
+@test "secrets submenu 2 dispatches 'seedsplit combine'" {
+  run_paranoid $'5\n2\n\n0\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "seedsplit combine" "$LOG"
 }
 
-# --- ghostdraft submenu (пункт 7) ---
+# --- блокнот: подменю (пункт 4 → ...) ---
 
-@test "ghostdraft submenu 1 dispatches 'ghostdraft new'" {
-  run_paranoid $'7\n1\n\n0\n'
+@test "notepad submenu 1 dispatches 'ghostdraft new'" {
+  run_paranoid $'4\n1\n\n0\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft new" "$LOG"
 }
 
-@test "ghostdraft submenu 2 dispatches 'ghostdraft pipe'" {
-  run_paranoid $'7\n2\n\n0\n'
+@test "notepad submenu 2 dispatches 'ghostdraft pipe'" {
+  run_paranoid $'4\n2\n\n0\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft pipe" "$LOG"
 }
 
-@test "ghostdraft submenu 3 dispatches 'ghostdraft new --clipboard'" {
-  run_paranoid $'7\n3\n\n0\n'
+@test "notepad submenu 3 dispatches 'ghostdraft new --clipboard'" {
+  run_paranoid $'4\n3\n\n0\n0\n'
   [ "$status" -eq 0 ]
   grep -qx "ghostdraft new --clipboard" "$LOG"
 }
 
-@test "ghost submenu 3 warns the clipboard auto-wipes" {
-  run_paranoid $'7\n3\n\n0\n'
+@test "notepad submenu 3 warns the clipboard auto-wipes" {
+  run_paranoid $'4\n3\n\n0\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"clipboard"* ]]
   [[ "$output" == *"20s"* ]]
 }
 
-# --- vaultwatch start (пункт 8) ---
+# --- сейф: vaultwatch start (подменю 3 → 4) ---
 
 @test "watch with TTL dispatches 'vaultwatch start --ttl <X> <vault>'" {
-  run_paranoid $'8\n30m\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'3\n4\n30m\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch start --ttl 30m $TMP/vault" "$LOG"
 }
 
 @test "watch without TTL dispatches 'vaultwatch start <vault>'" {
-  run_paranoid $'8\n\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'3\n4\n\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch start $TMP/vault" "$LOG"
 }
@@ -260,20 +297,38 @@ STUB
 
 # --- отсутствующий тул ---
 
-@test "missing tool shows '(not installed)' in menu" {
+@test "missing tool shows '(not installed)' inside its submenu" {
   rm -f "$STUBS/seedsplit"
-  run_paranoid $'0\n'
+  run_paranoid $'5\n0\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"(not installed)"* ]]
 }
 
 @test "missing tool action invokes nothing (log stays empty for it)" {
   rm -f "$STUBS/seedsplit"
-  run_paranoid $'5\n\n0\n'
+  run_paranoid $'5\n1\n\n0\n0\n'
   [ "$status" -eq 0 ]
   ! grep -q "^seedsplit" "$LOG"
   # И показан хинт на установку (репо).
   [[ "$output" == *"github.com/Di-kairos/seedsplit"* ]]
+}
+
+# --- top-level: три группы-подменю ---
+
+@test "top level shows the three submenu groups" {
+  run_paranoid $'0\n'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Vault ▸"* ]]
+  [[ "$output" == *"Notepad ▸"* ]]
+  [[ "$output" == *"Secrets ▸"* ]]
+}
+
+@test "submenu 0 returns to the top menu (back navigation)" {
+  # Войти в Сейф, вернуться (0), затем выйти (0). Дашборд показан дважды → видим Status.
+  run_paranoid $'3\n0\n0\n'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Vault — encrypted container"* ]]
+  [[ "$output" == *"Status — full read-only check"* ]]
 }
 
 # --- i18n chrome ---
@@ -310,26 +365,26 @@ STUB
 # --- UX: подсказки и тупики ---
 
 @test "split prints a paste prompt before reading stdin" {
-  run_paranoid $'5\n\n0\n'
+  run_paranoid $'5\n1\n\n0\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"Paste the secret"* ]]
 }
 
 @test "combine prints a one-per-line paste prompt" {
-  run_paranoid $'6\n\n0\n'
+  run_paranoid $'5\n2\n\n0\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"one per line"* ]]
 }
 
 @test "ghost new shows which editor opens and how to exit" {
-  EDITOR=nano run_paranoid $'7\n1\n\n0\n' EDITOR=nano
+  EDITOR=nano run_paranoid $'4\n1\n\n0\n0\n' EDITOR=nano
   [ "$status" -eq 0 ]
   [[ "$output" == *"nano"* ]]
   [[ "$output" == *"Ctrl-X"* ]]
 }
 
 @test "ghost pipe shows a hint (does not silently wait on stdin)" {
-  run_paranoid $'7\n2\n\n0\n'
+  run_paranoid $'4\n2\n\n0\n0\n'
   [ "$status" -eq 0 ]
   [[ "$output" == *"clipboard"* ]]
 }
@@ -341,13 +396,13 @@ STUB
 }
 
 @test "invalid TTL is rejected and does not start vaultwatch" {
-  run_paranoid $'8\n30min\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'3\n4\n30min\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Invalid format"* ]]
   ! grep -q "vaultwatch start" "$LOG"
 }
 
-@test "menu item 8 stops the watch when a session is active" {
+@test "vault submenu 4 stops the watch when a session is active" {
   cat >"$STUBS/vaultwatch" <<EOF
 #!/usr/bin/env bash
 printf 'vaultwatch %s\n' "\$*" >>"$LOG"
@@ -355,7 +410,7 @@ printf 'vaultwatch %s\n' "\$*" >>"$LOG"
 exit 0
 EOF
   chmod +x "$STUBS/vaultwatch"
-  run_paranoid $'8\n\n0\n' ST_VAULT_VOLUME="$TMP/vault"
+  run_paranoid $'3\n4\n\n0\n0\n' ST_VAULT_VOLUME="$TMP/vault"
   [ "$status" -eq 0 ]
   grep -qx "vaultwatch stop $TMP/vault" "$LOG"
 }
