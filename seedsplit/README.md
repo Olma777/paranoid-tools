@@ -155,7 +155,7 @@ seedsplit help           # or -h / --help
 | Command | What it does |
 |---|---|
 | `seedsplit split [-n N] [-t T] [-p] [--file F]` | Split a secret (from stdin or `--file`) into `N` shares; any `T` reconstruct it. Default `-n 3 -t 2`. |
-| `seedsplit split -p` / `--passphrase` | Encrypt the secret first (openssl AES-256-CBC + PBKDF2) so a reconstructed threshold still needs the passphrase. `combine` auto-detects and prompts. See *Scope & limitations*. |
+| `seedsplit split -p` / `--passphrase` | Encrypt the secret first (openssl AES-256-CBC + PBKDF2, authenticated with a 16-byte sha256 tag inside the ciphertext) so a reconstructed threshold still needs the passphrase — and a wrong one is refused, never answered with garbage. `combine` auto-detects and prompts. See *Scope & limitations*. |
 | `seedsplit combine [FILE...]` | Reconstruct the secret from ≥T shares (read from stdin, one per line, or from `FILE`s). Prompts for the passphrase if the shares were split with `-p`. |
 | `seedsplit verify [FILE...]` | Confirm ≥T shares reconstruct, **without printing the secret** (prints only the recovered length). |
 | `seedsplit version` | Print the version (also `-v` / `--version`). |
@@ -218,10 +218,20 @@ oversell. So here are the honest limits:
   encrypt-before-split (AES-256-CBC + PBKDF2) so a reconstructed threshold still needs the
   passphrase. The core `split`/`combine` stay dependency-free; only `-p` calls openssl
   (present by default on macOS/Linux). The Windows port reconstructs the sealed container and
-  tells you to decrypt it with an `openssl enc -d` pipeline. **Edge:** a non-encrypted secret
-  that happens to begin with the literal bytes `Salted__` (≈2⁻⁶⁴ for arbitrary data; not a
-  concern for real seed phrases) is mis-read by `combine` as encrypted — you'd get a
-  "wrong passphrase" error instead of the secret (no leak); re-split with `-p` or decrypt by hand.
+  tells you to decrypt it with an `openssl enc -d` pipeline.
+  **The container is authenticated.** `openssl enc` has no AEAD mode, and its PKCS#7 padding
+  check is *not* a passphrase check — on its own, a wrong passphrase passes it with probability
+  a little above 1/256 and hands back plausible garbage. So the plaintext carries a 16-byte
+  sha256 tag over the secret *inside* the ciphertext, and the container is prefixed with the
+  5 ASCII bytes `SSPP1`. A wrong passphrase now fails the tag (≈2⁻¹²⁸) and gets an honest
+  refusal — the same "exact secret or refusal" promise the Shamir layer makes.
+  **Legacy shares** cut before this format (a bare `Salted__` container) still combine, but
+  `combine` warns that the old format cannot distinguish a wrong passphrase from the right one;
+  re-split with `-p` to move them onto the authenticated format.
+  **Edge:** a non-encrypted secret that happens to begin with the literal bytes `SSPP1`
+  (≈2⁻⁴⁰) or `Salted__` (≈2⁻⁶⁴) — for arbitrary data; not a concern for real seed phrases —
+  is mis-read by `combine` as encrypted: you'd get a "wrong passphrase" error instead of the
+  secret (no leak); re-split with `-p` or decrypt by hand.
 
 ## Architecture
 

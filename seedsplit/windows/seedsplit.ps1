@@ -100,6 +100,8 @@ function T {
         'ru:combine_integrity'    { return 'combine: восстановление не прошло проверку целостности (повреждение долей или несовместимый набор)' }
         'en:verify_ok'            { return "verify: shares are consistent, the secret is recoverable ($A bytes). The secret is NOT shown." }
         'ru:verify_ok'            { return "verify: доли согласованы, секрет восстановим ($A байт). Секрет НЕ показан." }
+        'en:pp_sealed_win_v1'     { return 'These shares are passphrase-encrypted in the authenticated format (magic SSPP1). The bytes below are the SEALED container, NOT the secret — strip the first 5 bytes, decrypt with: ... | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 ; the last 16 bytes of the result are a sha256 tag over the secret - they must match, or the passphrase was wrong.' }
+        'ru:pp_sealed_win_v1'     { return 'Доли зашифрованы passphrase в аутентифицированном формате (магия SSPP1). Байты ниже — ЗАПЕЧАТАННЫЙ контейнер, НЕ секрет: убери первые 5 байт и расшифруй ... | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 ; последние 16 байт результата — sha256-тег секрета, он обязан совпасть, иначе passphrase неверный.' }
         'en:pp_sealed_win'        { return 'These shares are passphrase-encrypted (openssl AES-256-CBC/PBKDF2, created with -p). The bytes below are the SEALED container, NOT the secret — decrypt them: ... | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000' }
         'ru:pp_sealed_win'        { return 'Доли зашифрованы passphrase (openssl AES-256-CBC/PBKDF2, сделаны с -p). Байты ниже — ЗАПЕЧАТАННЫЙ контейнер, НЕ секрет — расшифруй: ... | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000' }
         default                   { return $Key }
@@ -651,10 +653,17 @@ function Invoke-SsCombine {
     param([string[]]$ArgList)
     $raw = Read-SsCombineInput $ArgList
     $secret = Get-SsRecoveredSecret $raw
-    # The passphrase-mode container (-p, macOS/Linux): first 8 bytes = "Salted__" (openssl). On
-    # Windows we do no auto-decryption (no hard dependency on openssl) — we honestly warn and
-    # hand over the container as is, to be decrypted with an openssl pipeline.
-    if ($secret.Length -ge 8 -and
+    # The passphrase-mode container (-p, macOS/Linux). Two shapes: the authenticated format
+    # starts with the ASCII magic "SSPP1" (0x53 0x53 0x50 0x50 0x31), the legacy one starts with
+    # the bare openssl "Salted__". On Windows we do no auto-decryption (no hard dependency on
+    # openssl) — we honestly warn and hand over the container as is, to be decrypted with an
+    # openssl pipeline.
+    if ($secret.Length -ge 5 -and
+        $secret[0] -eq 0x53 -and $secret[1] -eq 0x53 -and $secret[2] -eq 0x50 -and $secret[3] -eq 0x50 -and
+        $secret[4] -eq 0x31) {
+        Write-SsWarn (T 'pp_sealed_win_v1')
+    }
+    elseif ($secret.Length -ge 8 -and
         $secret[0] -eq 0x53 -and $secret[1] -eq 0x61 -and $secret[2] -eq 0x6C -and $secret[3] -eq 0x74 -and
         $secret[4] -eq 0x65 -and $secret[5] -eq 0x64 -and $secret[6] -eq 0x5F -and $secret[7] -eq 0x5F) {
         Write-SsWarn (T 'pp_sealed_win')

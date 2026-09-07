@@ -66,6 +66,19 @@ Open a new terminal afterward so `PATH` refreshes.
 > # then, wherever openssl is available:
 > openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in sealed.bin
 > ```
+>
+> **Two container shapes.** The current, *authenticated* one starts with the five ASCII bytes
+> `SSPP1`: strip them before feeding the rest to `openssl enc -d`, and the last 16 bytes of the
+> decrypted result are a sha256 tag over the secret — they must match, otherwise the passphrase
+> was wrong. A legacy container starts straight with `Salted__` and has no such tag: `openssl`
+> alone cannot tell a wrong passphrase from the right one there, so verify the result yourself.
+>
+> ```powershell
+> # authenticated container: drop the 5-byte magic first
+> $b = [IO.File]::ReadAllBytes("sealed.bin")
+> [IO.File]::WriteAllBytes("sealed.enc", $b[5..($b.Length-1)])
+> openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in sealed.enc
+> ```
 
 ```powershell
 "correct horse battery staple" | seedsplit split -n 5 -t 3 > shares.txt

@@ -309,8 +309,10 @@ EOF
     ru:pp_locked)           printf 'Доли защищены passphrase — введи его, чтобы раскрыть секрет: ' ;;
     en:pp_dec_fail)         printf 'combine: wrong passphrase, or the encrypted secret is corrupt.' ;;
     ru:pp_dec_fail)         printf 'combine: неверный passphrase или зашифрованный секрет повреждён.' ;;
-    en:pp_locked_noss)      printf 'combine: these shares are passphrase-encrypted but openssl is not on PATH. Decrypt elsewhere: the reconstructed bytes are a standard openssl enc -aes-256-cbc -pbkdf2 container.' ;;
-    ru:pp_locked_noss)      printf 'combine: доли зашифрованы passphrase, но openssl нет в PATH. Расшифруй в другом месте: восстановленные байты — стандартный контейнер openssl enc -aes-256-cbc -pbkdf2.' ;;
+    en:pp_legacy_unauth)    printf 'combine: these shares use the LEGACY passphrase format (no authentication). openssl cannot tell a wrong passphrase from the right one here — a wrong one can return plausible garbage. Check the secret, then re-split with -p to move it to the authenticated format.' ;;
+    ru:pp_legacy_unauth)    printf 'combine: доли в СТАРОМ формате passphrase (без аутентификации). openssl здесь не отличает неверный passphrase от верного — при неверном может вернуться правдоподобный мусор. Проверь секрет и пересобери его через split -p, чтобы перейти на аутентифицированный формат.' ;;
+    en:pp_locked_noss)      printf 'combine: these shares are passphrase-encrypted but openssl is not on PATH. Decrypt elsewhere: the reconstructed bytes are a standard openssl enc -aes-256-cbc -pbkdf2 container (the authenticated format prefixes it with the 5 ASCII bytes SSPP1 and appends a 16-byte sha256 tag to the plaintext).' ;;
+    ru:pp_locked_noss)      printf 'combine: доли зашифрованы passphrase, но openssl нет в PATH. Расшифруй в другом месте: восстановленные байты — стандартный контейнер openssl enc -aes-256-cbc -pbkdf2 (в аутентифицированном формате перед ним стоят 5 ASCII-байт SSPP1, а к открытому тексту добавлен 16-байтовый sha256-тег).' ;;
 
     *) echo "$key" ;;
   esac
@@ -541,6 +543,15 @@ _rs_repair_hex() {
 # bytes). openssl is needed ONLY for this mode — the core stays zero-dep. Parameters are fixed →
 # decryption is compatible anywhere openssl exists.
 PP_ITER=200000
+# Container magic for the AUTHENTICATED passphrase format: ASCII "SSPP1" (hex 53 53 50 50 31),
+# written in front of the openssl container. `openssl enc` offers no AEAD mode, and a PKCS#7
+# padding check is NOT a passphrase check: a wrong passphrase passes it with probability a bit
+# above 1/256 and `combine` would hand back plausible garbage as if it were the secret. So the
+# PLAINTEXT carries its own 16-byte tag (sha256 of the secret, truncated) inside the ciphertext:
+# a wrong passphrase now fails that tag (~2^-128) and gets an honest refusal instead of garbage.
+# The magic makes the format explicit — legacy shares (bare "Salted__" container) still combine,
+# with a warning that the old format cannot tell a wrong passphrase from a right one.
+PP_MAGIC_HEX="5353505031"
 
 # Read the passphrase for encryption (with confirmation). Env SEEDSPLIT_PASSPHRASE — for tests/
 # automation; otherwise hidden input from /dev/tty (stdin is occupied by the secret in a pipe).
@@ -566,12 +577,29 @@ _pp_read_unlock() {
 
 # Encrypt secret_hex with the passphrase → ct_hex. Passphrase via fd:3 (NOT argv → not visible in `ps`).
 _pp_encrypt_hex() {
-  local sec_hex="$1" pp="$2" ct_hex
+  local sec_hex="$1" pp="$2" ct_hex tag_hex
+  # Encrypt-then-refuse: the tag goes INSIDE the ciphertext, over the plaintext secret, so
+  # decryption under a wrong passphrase cannot produce a payload that passes it.
+  tag_hex="$(_from_hex "$sec_hex" | _sha256_hex)"; tag_hex="${tag_hex:0:32}"
+  [[ ${#tag_hex} -eq 32 ]] || return 1
   # Passphrase via fd:3 from a process substitution (a pipe, NOT the on-disk here-string `<<<`,
   # which would materialize the passphrase into a temporary file in $TMPDIR → carving/leak). See P1-5.
-  ct_hex="$(_from_hex "$sec_hex" | openssl enc -aes-256-cbc -pbkdf2 -iter "$PP_ITER" -salt -pass fd:3 3< <(printf '%s' "$pp") 2>/dev/null | _to_hex)" || return 1
+  ct_hex="$(_from_hex "${sec_hex}${tag_hex}" | openssl enc -aes-256-cbc -pbkdf2 -iter "$PP_ITER" -salt -pass fd:3 3< <(printf '%s' "$pp") 2>/dev/null | _to_hex)" || return 1
   [[ -n "$ct_hex" ]] || return 1
-  printf '%s' "$ct_hex"
+  printf '%s' "${PP_MAGIC_HEX}${ct_hex}"
+}
+
+# Decrypt an authenticated container (magic already stripped) → secret_hex, or return 1.
+# Nothing is printed until the tag matches: a refusal must never leak a byte of the attempt.
+_pp_decrypt_hex() {
+  local ct_hex="$1" pp="$2" pt_hex sec_hex tag_have tag_want
+  pt_hex="$(_from_hex "$ct_hex" | openssl enc -d -aes-256-cbc -pbkdf2 -iter "$PP_ITER" -pass fd:3 3< <(printf '%s' "$pp") 2>/dev/null | _to_hex)" || return 1
+  (( ${#pt_hex} >= 34 )) || return 1                    # >=1 secret byte + 16 tag bytes
+  sec_hex="${pt_hex:0:$(( ${#pt_hex} - 32 ))}"
+  tag_have="${pt_hex: -32}"
+  tag_want="$(_from_hex "$sec_hex" | _sha256_hex)"; tag_want="${tag_want:0:32}"
+  [[ "$tag_have" == "$tag_want" ]] || return 1
+  printf '%s' "$sec_hex"
 }
 
 cmd_split() {
@@ -826,18 +854,28 @@ _recover_secret_hex() {
 cmd_combine() {
   local raw; if (( $# )); then raw="$(cat "$@")"; else raw="$(cat)"; fi
   local sh; sh="$(_recover_secret_hex "$raw")" || exit 1
-  # Is the reconstructed secret an openssl container (magic "Salted__" = hex 53616c7465645f5f)?
-  # Then it is passphrase-encrypted: prompt and decrypt (wrong one → honest refusal).
+  # Which passphrase container is this? "SSPP1" (hex 5353505031) = the authenticated format:
+  # a wrong passphrase is caught by the tag inside the ciphertext and refused. A bare "Salted__"
+  # (hex 53616c7465645f5f) = a legacy container cut before that format existed: it still opens,
+  # but openssl alone cannot distinguish a wrong passphrase from a right one, so we say so.
   # Edge (documented in the README): if a NON-encrypted secret (split without -p) itself begins
-  # with exactly the bytes "Salted__" (~2^-64 for arbitrary data, never for textual secrets),
+  # with exactly those bytes (~2^-40 / ~2^-64 for arbitrary data, never for textual secrets),
   # combine will mistakenly ask for a passphrase. Not a leak — it just returns "wrong passphrase"
   # instead of the secret; work around by re-splitting with -p or decrypting manually via openssl.
-  if [[ "${sh:0:16}" == "53616c7465645f5f" ]]; then
+  local sec_hex
+  if [[ "${sh:0:10}" == "$PP_MAGIC_HEX" ]]; then
+    command -v openssl >/dev/null 2>&1 || { err "$(t pp_locked_noss)"; exit 1; }
+    local pp; pp="$(_pp_read_unlock)"
+    sec_hex="$(_pp_decrypt_hex "${sh:10}" "$pp")" || { pp=""; err "$(t pp_dec_fail)"; exit 1; }
+    pp=""
+    _from_hex "$sec_hex"
+  elif [[ "${sh:0:16}" == "53616c7465645f5f" ]]; then
     command -v openssl >/dev/null 2>&1 || { err "$(t pp_locked_noss)"; exit 1; }
     local pp; pp="$(_pp_read_unlock)"
     # fd:3 from a process substitution (a pipe, NOT the on-disk `<<<`) — the passphrase does not spill to disk (P1-5).
     _from_hex "$sh" | openssl enc -d -aes-256-cbc -pbkdf2 -iter "$PP_ITER" -pass fd:3 3< <(printf '%s' "$pp") 2>/dev/null || { pp=""; err "$(t pp_dec_fail)"; exit 1; }
     pp=""
+    warn "$(t pp_legacy_unauth)"
   else
     _from_hex "$sh"
   fi
