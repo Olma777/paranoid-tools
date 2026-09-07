@@ -102,7 +102,10 @@ it yourself is a weekend, not a project.
 
 **Verify the releases yourself.** `bash verify-releases.sh` downloads the published
 release of every tool and checks each Ed25519 signature and checksum against the key
-pinned in this repo — it installs nothing and needs nothing but `curl` and `ssh-keygen`.
+pinned in this repo — all four signed files of each release (the tool, its PowerShell
+twin and both installers), because an installer nobody verifies is the same hole as an
+unverified tool. Anything that did not download is a failure, never a pass. It installs
+nothing and needs nothing but `curl` and `ssh-keygen`.
 That is the claim in the heading, executable. More on what is tested and how:
 [docs/TESTING.md](docs/TESTING.md).
 
