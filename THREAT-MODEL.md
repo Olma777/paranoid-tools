@@ -52,8 +52,14 @@ logins, Paranoid Tools for the secrets that are too valuable to live in either.
 - **Leftover drafts.** `ghostdraft` writes inside the open vault or a RAM disk on macOS —
   no copy in your folders, editor history, or unencrypted temp files. (The Windows port
   falls back to an on-disk temp file when no vault is open, and warns you it did.)
-- **Recoverable "deleted" files.** `vault reset` destroys data by destroying the key
-  (crypto-shred) instead of pretending an overwrite worked on SSD.
+- **Recoverable "deleted" files.** `vault reset` deletes the encrypted container, and
+  with it the key material in its header, instead of pretending an overwrite worked on
+  SSD. Read the promise precisely: the deletion itself is an ordinary file deletion, not
+  a verified storage-level key-destruction procedure — what makes it erasure is that the
+  blocks left behind only ever held ciphertext. It holds while your password is strong
+  and no copy, backup or snapshot of that container survives elsewhere; a surviving copy
+  stays decryptable with the old password, and the new key `reset` creates does nothing
+  to it.
 - **A lost backup revealing the secret.** `seedsplit` splits it into Shamir shares:
   fewer than the threshold reveal nothing about the secret's content (a share does
   expose metadata — format, threshold, share number, and the secret's approximate

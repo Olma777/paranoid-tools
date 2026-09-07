@@ -166,10 +166,23 @@ created: everything you put inside is written to disk as ciphertext. An open
 container mounts as a regular volume at `/Volumes/SecretVault`; a closed one is
 just an unreadable encrypted image.
 
-When you run `vault destroy`, the container itself is removed along with its
-encryption key. Recovery then depends on the strength of your password and on no
-copies, backups or snapshots of the container surviving elsewhere. With a strong
-password and no leftover copies, the blocks left behind on the SSD are effectively
+When you run `vault destroy`, the container file is deleted (`rm -rfP` on macOS,
+`Remove-Item` on Windows) and the key material inside its header goes with it. Be
+precise about what that is and is not: **the deletion itself is an ordinary file
+deletion** — on an SSD we cannot prove every block is gone, and we do not claim a
+verified key-destruction procedure in the sense of a storage-level sanitize command.
+What makes it erasure is that those blocks only ever held ciphertext.
+
+So the guarantee is conditional, and these are the conditions:
+
+- **your password is strong** — any copy of the old container is still decryptable
+  with it. `vault reset` builds a new container with a new key, and that new key
+  does nothing to a copy of the old one;
+- **no copy, backup or snapshot of that container survives elsewhere** — Time
+  Machine, a cloud sync folder, an APFS local snapshot (`securetrash check` reports
+  those), or a manual copy.
+
+With both conditions met, the blocks left behind on the SSD are effectively
 mathematical noise — recovery tools can read them all day long and find nothing
 meaningful.
 

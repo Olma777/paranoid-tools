@@ -228,7 +228,7 @@
         <div class="row del"><span class="sign txt">-</span><span class="txt">TRIM guarantees the old data is erased right away.</span></div>
         <div class="row add"><span class="sign txt">+</span><span class="txt">Wear leveling sends your overwrite to a <em>new</em> cell; the original sits in flash, still recoverable.</span></div>
         <div class="row add"><span class="sign txt">+</span><span class="txt">Over-provisioned and remapped cells hold copies your OS can't even address.</span></div>
-        <div class="row add"><span class="sign txt">+</span><span class="txt">Real protection is crypto-shred: destroy the key, and every copy becomes useless noise at once.</span></div>
+        <div class="row add"><span class="sign txt">+</span><span class="txt">Real protection is crypto-shred: delete the container that holds the key, and the copies left behind are ciphertext nobody can open — as long as your password is strong and no copy of that container survives elsewhere.</span></div>
       </div>
       <p class="note">Want the full technical breakdown (fact-checked against NIST SP 800-88r2 &amp; the UCSD FAST'11 study)? Read <a href="https://github.com/Di-kairos/paranoid-tools/blob/main/securetrash/docs/blog/ssd-secure-delete-myth.en.md">“Why overwriting files doesn't work on SSDs”</a>.</p>
     </div>
@@ -239,12 +239,12 @@
     <div class="wrap">
       <div class="eyebrow">How crypto-shred works</div>
       <h2>Encrypt first, then throw away the key</h2>
-      <p class="lead">If your data only ever exists as ciphertext, the scattered physical copies are noise. Destroy the key and they all die — no need to reach the hidden cells.</p>
+      <p class="lead">If your data only ever exists as ciphertext, the scattered physical copies are noise — no need to reach the hidden cells. Two conditions carry that promise: a strong password, and no surviving copy, backup or snapshot of the old container (a copy stays decryptable with the old password).</p>
       <div class="steps">
         <div class="step"><div class="n">01</div><h3>Create a vault</h3><p>An encrypted AES-256 sparsebundle. Set it up <em>before</em> you have secrets — it's preventive.</p></div>
         <div class="step"><div class="n">02</div><h3>Work inside it</h3><p>Open the vault, use your files. They only ever touch disk as ciphertext.</p></div>
-        <div class="step"><div class="n">03</div><h3>Destroy the key</h3><p><code>vault destroy</code> removes the container and the key it depends on.</p></div>
-        <div class="step"><div class="n">04</div><h3>Data is gone</h3><p>Ciphertext without a key is unrecoverable — regardless of what the flash controller did.</p></div>
+        <div class="step"><div class="n">03</div><h3>Delete the container</h3><p><code>vault destroy</code> deletes the encrypted container, and the key material in its header goes with it. The deletion itself is an ordinary file deletion — what makes it erasure is that those blocks only ever held ciphertext.</p></div>
+        <div class="step"><div class="n">04</div><h3>Data is gone</h3><p>Ciphertext without a key is unrecoverable, regardless of what the flash controller did — provided no copy of the container is still lying in a backup, a snapshot or a sync folder.</p></div>
       </div>
     </div>
   </section>
