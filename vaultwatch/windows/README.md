@@ -54,7 +54,7 @@ vaultwatch stop V:\               # restore + report
 | macOS (bash) | Windows (this port) |
 |--------------|---------------------|
 | Spotlight off (`mdutil -i off`) | exclude folder from Windows Search (`NotContentIndexed` attribute) |
-| `--ttl` auto-detach (launchd LaunchAgent) | one-shot **Task Scheduler** task → `vaultwatch _ttl_fire` |
+| `--ttl` auto-detach (launchd LaunchAgent) | one-shot **Task Scheduler** task → `vaultwatch _ttl_fire` (started with `-ExecutionPolicy Bypass`, so a machine whose policy is `Restricted` still runs it; the policy itself is untouched) |
 | unmount-guard (launchd **WatchPaths**, event-driven) | unmount-guard (**Task Scheduler polling**, ~1 min) → `vaultwatch _guard_fire` |
 | Time Machine exclusion (`tmutil addexclusion`) | **not done** — Windows can't cleanly exclude backups from CLI |
 | `tmutil listlocalsnapshots` (report) | `vssadmin list shadows` (report VSS shadow copies) |

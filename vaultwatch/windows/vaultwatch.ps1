@@ -266,6 +266,20 @@ function ConvertTo-VwArgvSafe {
     return ($Value -replace '(\\+)$', '$1$1')
 }
 
+# Every entry point we create for something OTHER than the current console — a Task Scheduler
+# action, a securetrash hook — must carry -ExecutionPolicy Bypass. The installed shim starts
+# `pwsh -ExecutionPolicy Bypass` for its own process only; that is a per-process setting and does
+# not become the policy of a task registered from it. On a machine whose effective policy is
+# Restricted (a default, and common under corporate policy), `pwsh -File script.ps1` refuses to
+# load the file: the task registers as Ready and then does nothing at fire time — the TTL passes
+# with the vault still open and the guard never restores the Search exclusion (audit 2026-09-07,
+# F03). Machine policy is not touched: -ExecutionPolicy applies to the started process only.
+function Get-VwPwshArgs {
+    param([string]$Self, [string]$Verb, [string]$Mount, [switch]$Hidden)
+    $hide = if ($Hidden) { '-WindowStyle Hidden ' } else { '' }
+    return "-NoProfile -ExecutionPolicy Bypass ${hide}-File `"$(ConvertTo-VwArgvSafe $Self)`" $Verb `"$(ConvertTo-VwArgvSafe $Mount)`""
+}
+
 # Both tasks run as THIS user, elevated. Without -RunLevel Highest the task registers happily
 # and then fails at fire time: Lock-BitLocker is administrator-only, so the TTL would expire
 # with the vault still open and nothing to show for it. Interactive logon (not S4U) because the
@@ -280,7 +294,7 @@ function Register-VwTtlTask {
     param([string]$Mount, [int]$Seconds, [string]$Self)
     $label = 'vaultwatch-ttl-' + (($Mount -replace '[^a-zA-Z0-9]', '_'))
     try {
-        $arg = "-NoProfile -WindowStyle Hidden -File `"$(ConvertTo-VwArgvSafe $Self)`" _ttl_fire `"$(ConvertTo-VwArgvSafe $Mount)`""
+        $arg = Get-VwPwshArgs -Self $Self -Verb '_ttl_fire' -Mount $Mount -Hidden
         $action = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument $arg
         $trigger = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddSeconds($Seconds))
         Register-ScheduledTask -TaskName $label -Action $action -Trigger $trigger `
@@ -317,7 +331,7 @@ function Register-VwGuardTask {
     param([string]$Mount, [string]$Self)
     $label = Get-VwGuardLabel -Mount $Mount
     try {
-        $arg = "-NoProfile -WindowStyle Hidden -File `"$(ConvertTo-VwArgvSafe $Self)`" _guard_fire `"$(ConvertTo-VwArgvSafe $Mount)`""
+        $arg = Get-VwPwshArgs -Self $Self -Verb '_guard_fire' -Mount $Mount -Hidden
         $action  = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument $arg
         # -RepetitionDuration is MANDATORY: without it -RepetitionInterval registers as a one-shot
         # (fires once immediately, while the volume is still mounted → no-op — and never repeats
@@ -475,7 +489,7 @@ function Write-VwHook {
     $body = @"
 @echo off
 $script:VW_HOOK_SIGNATURE
-pwsh -NoProfile -File "$Self" $Action %*
+pwsh -NoProfile -ExecutionPolicy Bypass -File "$Self" $Action %*
 "@
     Set-Content -LiteralPath $path -Value $body -Encoding ASCII
 }

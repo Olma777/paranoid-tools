@@ -511,7 +511,9 @@ Describe 'Assert-VwElevated — start требует администратор�
         $src | Should -Match 'RunLevel Highest'
         ([regex]::Matches($src, '-Principal \(New-VwTaskPrincipal\)')).Count |
             Should -Be 2 -Because 'и TTL-задача, и guard-задача'
-        ([regex]::Matches($src, '-NoProfile -WindowStyle Hidden -File')).Count |
+        # Обе задачи строят аргументы одним Get-VwPwshArgs -Hidden (F03): и скрытое окно, и
+        # -ExecutionPolicy Bypass живут в одном месте, поэтому считаем вызовы helper'а.
+        ([regex]::Matches($src, "Get-VwPwshArgs -Self \`$Self -Verb '_\w+' -Mount \`$Mount -Hidden")).Count |
             Should -Be 2 -Because 'иначе консоль моргает раз в минуту'
     }
 }
@@ -666,5 +668,32 @@ Describe 'ConvertTo-VwArgvSafe — хвостовые слэши в argv (Codex 
     }
     It 'оставляет обычную строку как есть' {
         ConvertTo-VwArgvSafe 'plain' | Should -Be 'plain'
+    }
+}
+
+# Аудит 2026-09-07, F03: задачи планировщика и хуки стартовали `pwsh -NoProfile -File ...` без
+# -ExecutionPolicy Bypass. Процессная политика установленного шима на задачу не переносится: на
+# машине с эффективной Restricted задача регистрируется как Ready и на срабатывании не делает
+# ничего — TTL истекает при открытом сейфе, guard не возвращает исключение индексации.
+Describe 'Фоновые входы несут -ExecutionPolicy Bypass (F03)' {
+    It 'аргументы TTL-задачи' {
+        $arg = Get-VwPwshArgs -Self 'C:\tools\lib\vaultwatch.ps1' -Verb '_ttl_fire' -Mount 'V:\' -Hidden
+        $arg | Should -Match '-ExecutionPolicy Bypass'
+        $arg | Should -Match '-WindowStyle Hidden'
+        $arg | Should -Match '_ttl_fire'
+        # хвостовой backslash по-прежнему удвоен (Codex Pack #1 не сломан)
+        $arg | Should -Match ([regex]::Escape('"V:\\"'))
+    }
+    It 'аргументы guard-задачи' {
+        $arg = Get-VwPwshArgs -Self 'C:\tools\lib\vaultwatch.ps1' -Verb '_guard_fire' -Mount 'V:\' -Hidden
+        $arg | Should -Match '-ExecutionPolicy Bypass'
+        $arg | Should -Match '_guard_fire'
+    }
+    It 'хук securetrash тоже стартует с Bypass' {
+        $dir = Join-Path $TestDrive 'hooks'
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $script:ST_HOOK_DIR = $dir
+        Write-VwHook -Name 'post-open.cmd' -Action 'start' -Self 'C:\tools\lib\vaultwatch.ps1'
+        (Get-Content -LiteralPath (Join-Path $dir 'post-open.cmd') -Raw) | Should -Match '-ExecutionPolicy Bypass'
     }
 }
