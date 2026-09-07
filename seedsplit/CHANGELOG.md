@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.5.8] — 2026-09-07
+
 ### Fixed
 - **Неверный passphrase мог дать «успешное» восстановление чужих байтов (F01, аудит 2026-09-07).**
   Слой `-p` шифровал секрет через `openssl enc -aes-256-cbc`, у которого нет режима AEAD: при
@@ -304,7 +306,8 @@
   порога, отказ при <T долях без утечки, детект порчи/чужого набора, бинарные секреты,
   границы N/T). shellcheck clean. Тесты идут на Linux-CI через PATH-стаб `uname`.
 
-[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/seedsplit-v0.5.7...HEAD
+[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/seedsplit-v0.5.8...HEAD
+[0.5.8]: https://github.com/Di-kairos/paranoid-tools/compare/seedsplit-v0.5.7...seedsplit-v0.5.8
 [0.5.7]: https://github.com/Di-kairos/paranoid-tools/compare/seedsplit-v0.5.6...seedsplit-v0.5.7
 [0.5.6]: https://github.com/Di-kairos/paranoid-tools/releases/tag/seedsplit-v0.5.6
 [0.5.4]: https://github.com/Di-kairos/seedsplit/compare/v0.5.3...v0.5.4

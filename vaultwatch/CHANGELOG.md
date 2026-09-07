@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.1.17] — 2026-09-07
+
 ### Fixed
 - **Windows: фоновые задачи могли не запускаться вообще (F03, аудит 2026-09-07).** TTL-задача,
   guard-задача и хуки `securetrash` стартовали `pwsh -NoProfile -File ...` без
@@ -331,7 +333,8 @@
 - Real-device smoke на macOS: start/stop/`--ttl` на живом sparsebundle, launchd
   bootstrap/bootout-цикл, plist валиден (`plutil -lint`).
 
-[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/vaultwatch-v0.1.16...HEAD
+[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/vaultwatch-v0.1.17...HEAD
+[0.1.17]: https://github.com/Di-kairos/paranoid-tools/compare/vaultwatch-v0.1.16...vaultwatch-v0.1.17
 [0.1.16]: https://github.com/Di-kairos/paranoid-tools/compare/vaultwatch-v0.1.15...vaultwatch-v0.1.16
 [0.1.15]: https://github.com/Di-kairos/paranoid-tools/releases/tag/vaultwatch-v0.1.15
 [0.1.13]: https://github.com/Di-kairos/vaultwatch/compare/v0.1.12...v0.1.13

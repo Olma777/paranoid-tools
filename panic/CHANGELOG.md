@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.1.18] — 2026-09-07
+
 ### Added
 - **`panic now` печатает замеренное время своего запуска (F09, аудит 2026-09-07).** Обещание
   «мгновенно» было намерением, а не характеристикой: шаги — внешние команды без общей гарантии
@@ -297,7 +299,8 @@
   `PANIC_SFL_DIR` overrides.
 - Real-device smoke на macOS: `now` распарсил живой `hdiutil info` и размонтировал тест-образ.
 
-[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/panic-v0.1.17...HEAD
+[Unreleased]: https://github.com/Di-kairos/paranoid-tools/compare/panic-v0.1.18...HEAD
+[0.1.18]: https://github.com/Di-kairos/paranoid-tools/compare/panic-v0.1.17...panic-v0.1.18
 [0.1.17]: https://github.com/Di-kairos/paranoid-tools/compare/panic-v0.1.16...panic-v0.1.17
 [0.1.16]: https://github.com/Di-kairos/paranoid-tools/releases/tag/panic-v0.1.16
 [0.1.14]: https://github.com/Di-kairos/panic/compare/v0.1.13...v0.1.14

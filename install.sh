@@ -146,10 +146,10 @@ version_var_for() {
 tool_version_for() {
   case "$1" in
     securetrash) echo "0.5.8" ;;
-    vaultwatch)  echo "0.1.16" ;;
-    panic)       echo "0.1.17" ;;
+    vaultwatch)  echo "0.1.17" ;;
+    panic)       echo "0.1.18" ;;
     ghostdraft)  echo "0.1.20" ;;
-    seedsplit)   echo "0.5.7" ;;
+    seedsplit)   echo "0.5.8" ;;
   esac
 }
 
