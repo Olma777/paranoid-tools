@@ -1,8 +1,9 @@
 # Security Policy
 
-This repository is the umbrella: the `paranoid` launcher, the ecosystem installer
-(`install.sh`), `verify-releases.sh`, the shared docs and the GUI. The five tools live
-in their own repositories and carry their own `SECURITY.md`.
+This repository is the monorepo: the `paranoid` launcher, the ecosystem installer
+(`install.sh`), `verify-releases.sh`, the shared docs, the GUI, and all five tools
+(`securetrash`, `vaultwatch`, `panic`, `ghostdraft`, `seedsplit`), each of which also
+carries its own `SECURITY.md` for tool-specific scope.
 
 ## Reporting a vulnerability
 
@@ -52,3 +53,41 @@ To check the published releases yourself, without trusting the installer:
 ```bash
 bash verify-releases.sh
 ```
+
+It checks all four signed files of every release — the tool, its PowerShell twin and
+both installers — and treats anything that did not download as a failure, not a pass.
+
+### What protects the process that produces those signatures
+
+A signature proves where an artifact came from; it does not protect the place it comes
+from. Stated plainly, because the honesty is the point:
+
+- **One person maintains this project.** There is no second reviewer, and no release
+  requires anyone else's approval. Do not read "signed" as "independently reviewed".
+- **Releases are cut by `release.yml` from a tag**, in a job whose token is scoped to
+  `contents: write`; every other workflow runs with a read-only token, and every
+  external action is pinned by commit SHA rather than a moving tag.
+- **The signing key lives in Actions secrets** of this repository. Anyone who can push
+  a tag here can therefore produce a correctly signed artifact — the release process
+  and the source sit in the same trust zone. That is the honest boundary of what the
+  signature buys you.
+- **`main` carries no branch protection today.** Anything that can push with the
+  maintainer's credentials can also rewrite or delete history here. Requiring pull
+  requests would be ceremony with one maintainer, but blocking force-pushes and
+  deletion would not be — it is a known gap, not a decision.
+
+### If the signing key is compromised
+
+There is no in-band revocation — an installer pins the public key, so a key that has
+leaked keeps verifying until users update. The plan, in order:
+
+1. Publish the compromise at the top of this file and of the root `README.md`, naming
+   the last release believed to be honest and the date the key must no longer be
+   trusted. Assume users see this before they see anything else.
+2. Generate a new Ed25519 key offline, replace the Actions secret, and re-sign and
+   re-publish every current release under the new key.
+3. Update the pinned public key in every installer, in `verify-releases.sh` and in each
+   `SECURITY.md`, and cut a new patch release of all five tools so a normal update path
+   carries the new pin.
+4. Keep the old key's fingerprint published as revoked, so an artifact signed with it
+   can be recognized as untrusted after the fact rather than merely failing quietly.

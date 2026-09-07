@@ -17,13 +17,20 @@ on:
 defaults:
   run:
     working-directory: seedsplit
+# A workflow that only lints and tests needs no write access. An action running with the
+# default token is the release process's neighbour in the same trust zone — pinning the
+# action by commit SHA and handing it a read-only token is what keeps a compromised
+# third-party action from reaching the repository (audit 2026-09-07, F06).
+permissions:
+  contents: read
+
 jobs:
   test:
     # Linux runner: free minutes. seedsplit is pure logic (shellcheck +
     # vendor-check + bats); macOS primitives are stubbed with PATH stubs in the tests.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y bats shellcheck
       - name: Lint
@@ -51,7 +58,7 @@ jobs:
     # Includes KAT cross-compatibility of shares with the macOS build (one SSS2 format).
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Install Pester 5
         shell: pwsh
         run: Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion 5.9.1
@@ -69,7 +76,7 @@ jobs:
   windows-ps51:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Parse every .ps1 with the 5.1 parser
         shell: powershell
         run: |

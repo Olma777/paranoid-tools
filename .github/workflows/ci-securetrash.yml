@@ -14,12 +14,19 @@ on:
 defaults:
   run:
     working-directory: securetrash
+# A workflow that only lints and tests needs no write access. An action running with the
+# default token is the release process's neighbour in the same trust zone — pinning the
+# action by commit SHA and handing it a read-only token is what keeps a compromised
+# third-party action from reaching the repository (audit 2026-09-07, F06).
+permissions:
+  contents: read
+
 jobs:
   # Free Linux job: lint on every push (no macOS minutes spent).
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Lint
@@ -30,7 +37,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Install tools
         run: brew install bats-core shellcheck
       - name: Unit tests
@@ -48,7 +55,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Install Pester 5
         shell: pwsh
         run: Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion 5.9.1
@@ -66,7 +73,7 @@ jobs:
   windows-ps51:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: Parse every .ps1 with the 5.1 parser
         shell: powershell
         run: |
