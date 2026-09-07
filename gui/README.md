@@ -45,6 +45,12 @@ So the GUI cannot weaken the tools' guarantees: it is a launcher, not a new tool
   two languages and between macOS and Windows is enforced by test.
 - **Settings v2** — vault volume, poll interval, language, panic-hotkey preset, and a "Setup
   guide" button, all in the existing settings window.
+- **Windows: privileged actions go through UAC, like the terminal launcher.** The vault is
+  diskpart + BitLocker and `panic` has to close BitLocker volumes — none of that works without
+  administrator rights, and a tray started normally (or from HKCU Run) has none. So the tray
+  raises a single UAC prompt for `securetrash vault …` and `panic now`, the menu item says in
+  advance that it will ask, and a declined prompt is reported as "nothing was done" instead of
+  opening a console that quietly fails half its work.
 
 Verified here: macOS source compiles cleanly (`swiftc -O`) and passes `./ParanoidBar --selftest`
 (pure-logic checks: hotkey preset parsing, notification decision engine, localization-dictionary

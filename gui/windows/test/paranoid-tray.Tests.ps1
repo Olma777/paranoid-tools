@@ -213,7 +213,7 @@ Describe 'Test-PtAutostart — честная проверка автозапу�
 }
 
 Describe 'Invoke-PtTool — диспетчер CLI' {
-    BeforeEach { Mock Start-Process { } }
+    BeforeEach { Mock Start-Process { }; Mock Test-PtAdmin { $true } }
 
     It 'запускает реальную команду в новом окне' {
         Invoke-PtTool -Command 'securetrash check'
@@ -234,6 +234,52 @@ Describe 'Invoke-PtTool — диспетчер CLI' {
     It '__settings__ ничего не запускает (диалог обрабатывает сам tray)' {
         Invoke-PtTool -Command '__settings__'
         Should -Invoke Start-Process -Times 0 -Exactly
+    }
+}
+
+# Аудит 2026-09-07, F02: трей запускал сейф и PANIC обычным Start-Process — без прав команды
+# сейфа отказывают, а panic печатает предупреждение над открытым сейфом. Терминальный лаунчер
+# уже ходил через UAC; здесь тот же маршрут.
+Describe 'Invoke-PtTool — привилегированные команды идут через UAC (F02)' {
+    BeforeEach { Mock Start-Process { }; Mock Test-PtAdmin { $false } }
+
+    It 'команды сейфа запрашивают права' {
+        foreach ($cmd in @('securetrash vault open', 'securetrash vault close', 'securetrash vault create',
+                           'securetrash vault reset', 'securetrash vault destroy')) {
+            Test-PtNeedsAdmin $cmd | Should -BeTrue -Because "«$cmd» без прав молча деградирует"
+        }
+    }
+    It 'panic now запрашивает права, а read-only проверка — нет' {
+        Test-PtNeedsAdmin 'panic now --hard' | Should -BeTrue
+        Test-PtNeedsAdmin 'securetrash check' | Should -BeFalse
+        Test-PtNeedsAdmin 'paranoid' | Should -BeFalse
+    }
+    It 'сейф из трея стартует с -Verb RunAs' {
+        Invoke-PtTool -Command 'securetrash vault open' | Should -BeTrue
+        Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter { $Verb -eq 'RunAs' }
+    }
+    It 'PANIC из трея стартует с -Verb RunAs' {
+        Invoke-PtTool -Command 'panic now --hard'
+        Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter { $Verb -eq 'RunAs' }
+    }
+    It 'read-only команда идёт обычным запуском, без UAC' {
+        Invoke-PtTool -Command 'securetrash check'
+        Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter { $null -eq $Verb }
+    }
+    It 'уже поднятый трей не просит права второй раз' {
+        Mock Test-PtAdmin { $true }
+        Invoke-PtTool -Command 'securetrash vault open'
+        Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter { $null -eq $Verb }
+    }
+    It 'отказ в правах = честный $false, а не «сделано»' {
+        Mock Start-Process { throw 'UAC declined' }
+        Invoke-PtTool -Command 'panic now --hard' | Should -BeFalse
+    }
+    It 'без прав пункт PANIC честно сообщает про UAC' {
+        $panic = (Get-PtMenuSpec -VaultState 'closed' -Lang 'en' -Elevated $false)[4]
+        $panic.Label | Should -Match 'admin rights'
+        $panic2 = (Get-PtMenuSpec -VaultState 'closed' -Lang 'en' -Elevated $true)[4]
+        $panic2.Label | Should -Not -Match 'admin rights'
     }
 }
 
@@ -340,7 +386,12 @@ Describe 'Cross-platform l10n parity' {
         $swift = Get-Content -LiteralPath $swiftPath -Raw
         $swiftKeys = [regex]::Matches($swift, '(?m)^\s*"([a-z0-9_]+)":\s*\(') |
             ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
-        $psKeys = $PtStrings.en.Keys | Sort-Object -Unique
+        # Windows-only keys: UAC is a Windows mechanism, and macOS has no counterpart to mirror
+        # (its vault is hdiutil, which needs no elevation). Mirroring them into ParanoidBar.swift
+        # would add strings the macOS UI can never show. Everything else stays 1:1.
+        $winOnly = @('uac_suffix', 'notif_uac_declined')
+        foreach ($k in $winOnly) { $swiftKeys | Should -Not -Contain $k }
+        $psKeys = $PtStrings.en.Keys | Where-Object { $_ -notin $winOnly } | Sort-Object -Unique
         ($psKeys -join ',') | Should -Be ($swiftKeys -join ',')
     }
     It 'every referenced l10n key exists in the strings table' {

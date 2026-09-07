@@ -80,6 +80,7 @@ $script:PtStrings = @{
         tip_open='Vault is OPEN — at risk while open'; tip_closed='Vault closed'
         notif_ttl_warn='Vault auto-closes in {0}'; notif_ttl_expired='vaultwatch TTL expired — vault is still OPEN'
         notif_long_open='Vault open for 30+ minutes (no vaultwatch)'; notif_panic_arm='Press again to PANIC'
+        uac_suffix='(asks for admin rights)'; notif_uac_declined='Admin rights declined — NOTHING was done'
         notif_hotkey_fail='Panic hotkey unavailable (taken by another app)'
         set_title='Paranoid Bar — Settings'
         set_vol='Vault volume:'; set_poll='Poll interval (s):'; set_lang='Language:'; set_hotkey='Panic hotkey:'
@@ -104,6 +105,7 @@ $script:PtStrings = @{
         tip_open='Сейф ОТКРЫТ — под риском, пока открыт'; tip_closed='Сейф закрыт'
         notif_ttl_warn='Сейф авто-закроется через {0}'; notif_ttl_expired='TTL vaultwatch истёк — сейф всё ещё ОТКРЫТ'
         notif_long_open='Сейф открыт дольше 30 минут (без vaultwatch)'; notif_panic_arm='Нажмите ещё раз для ПАНИКИ'
+        uac_suffix='(запросит права администратора)'; notif_uac_declined='В правах отказано — НИЧЕГО не сделано'
         notif_hotkey_fail='Хоткей паники недоступен (занят другим приложением)'
         set_title='Paranoid Bar — Настройки'
         set_vol='Том сейфа:'; set_poll='Интервал опроса (с):'; set_lang='Язык:'; set_hotkey='Хоткей паники:'
@@ -140,7 +142,8 @@ function Get-PtMenuSpec {
     # in tests regardless of the CI host's culture.
     param([string]$VaultState = (Get-PtVaultState),
           [string]$Lang = (Resolve-PtLang -Override ((Get-PtSettings).Language)),
-          [bool]$FvOn = (Test-PtBitLocker))
+          [bool]$FvOn = (Test-PtBitLocker),
+          [bool]$Elevated = (Test-PtAdmin))
     # On 'unknown' the item promises no action: opening/closing/creating blindly is guessing,
     # so we call the read-only `vault status` and label it exactly that.
     $vaultToggle = switch ($VaultState) { 'open' { 'securetrash vault close' } 'closed' { 'securetrash vault open' } 'unknown' { 'securetrash vault status' } default { 'securetrash vault create' } }
@@ -159,7 +162,9 @@ function Get-PtMenuSpec {
         [pscustomobject]@{ Label = '-';                              Command = '';                  Enabled = $true }
         [pscustomobject]@{ Label = (Get-PtL 'status_item' -Lang $Lang);   Command = 'securetrash check'; Enabled = $true }
         # --hard = parity with the launcher's "PANIC NOW" (hide&lock + cloud daemons + recents)
-        [pscustomobject]@{ Label = (Get-PtL 'panic_item' -Lang $Lang);    Command = 'panic now --hard';  Enabled = $true }
+        # The label says up front that the button will ask for rights: a user who expects an
+        # instant lock should know a UAC prompt stands between the press and the vault closing.
+        [pscustomobject]@{ Label = ((Get-PtL 'panic_item' -Lang $Lang) + $(if ($Elevated) { '' } else { ' ' + (Get-PtL 'uac_suffix' -Lang $Lang) })); Command = 'panic now --hard';  Enabled = $true }
         [pscustomobject]@{ Label = '-';                              Command = '';                  Enabled = $true }
         [pscustomobject]@{ Label = $vaultLabel;                      Command = $vaultToggle;        Enabled = $true }
         [pscustomobject]@{ Label = (Get-PtL 'vault_empty' -Lang $Lang);   Command = 'securetrash vault reset';   Enabled = $hasVault }
@@ -392,12 +397,45 @@ function Set-PtSettings {
                        PanicHotkey = $PanicHotkey; Onboarded = $Onboarded } | ConvertTo-Json | Set-Content -LiteralPath $f
 }
 
-# Launch a CLI in a NEW console window (pwsh) — output and secret input go into the CLI itself, not the tray.
+# Is THIS process already running as administrator? A separate function so Pester can mock it
+# (a test run must never depend on how the CI agent was started).
+function Test-PtAdmin {
+    try {
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        return ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch { return $false }
+}
+
+# Which commands cannot do their job without administrator rights? The vault is diskpart +
+# BitLocker, and `panic` has to close BitLocker volumes — the terminal launcher already routes
+# both through UAC (Invoke-PnToolAdmin). Started from the tray or from HKCU Run, this process is
+# NOT elevated: without the same routing the vault commands refuse and `panic` prints a warning
+# over an open vault — an emergency button that only reports it cannot fire (audit F02).
+function Test-PtNeedsAdmin {
+    param([string]$Command)
+    return ($Command -match '^securetrash\s+vault\b' -or $Command -match '^panic\s+now\b')
+}
+
+# Launch a CLI in a NEW console window (pwsh) — output and secret input go into the CLI itself,
+# not the tray. Privileged commands go through UAC unless this process is already elevated.
+# Returns $true if the window was started, $false if the rights prompt was declined (or the
+# process could not start) — in which case NOTHING was done, and the caller says so.
 function Invoke-PtTool {
     param([string]$Command)
-    if (-not $Command -or $Command -eq '__quit__' -or $Command -eq '__autostart__' -or $Command -eq '__settings__' -or $Command -eq '__setup__') { return }
+    if (-not $Command -or $Command -eq '__quit__' -or $Command -eq '__autostart__' -or $Command -eq '__settings__' -or $Command -eq '__setup__') { return $true }
     # The command is fixed (from Get-PtMenuSpec), not from user input → no injection possible.
-    Start-Process -FilePath 'pwsh' -ArgumentList @('-NoExit', '-Command', $Command) | Out-Null
+    $argv = @('-NoExit', '-Command', $Command)
+    if ((Test-PtNeedsAdmin $Command) -and -not (Test-PtAdmin)) {
+        try {
+            # -Verb RunAs raises one UAC prompt; declining it surfaces here as a terminating
+            # error. That is the user saying no, not an anomaly — the honest answer is that
+            # nothing happened, never a window that silently fails half its work.
+            Start-Process -FilePath 'pwsh' -Verb RunAs -ArgumentList $argv -ErrorAction Stop | Out-Null
+            return $true
+        } catch { return $false }
+    }
+    Start-Process -FilePath 'pwsh' -ArgumentList $argv | Out-Null
+    return $true
 }
 
 # WinForms settings dialog (GUI path only; the Get/Set-PtSettings logic is tested separately).
@@ -596,7 +634,11 @@ public class PtHotkeyWindow : NativeWindow {
         $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() / 1000.0
         if (Test-PtPanicShouldFire -Now $now -ArmedAt $script:panicArmedAt) {
             $script:panicArmedAt = $null
-            Invoke-PtTool -Command 'panic now --hard'
+            if (-not (Invoke-PtTool -Command 'panic now --hard')) {
+                # The panic hotkey is the one place where a silent no-op is unacceptable: the
+                # user pressed it twice believing the vault is being closed.
+                $notify.ShowBalloonTip(5000, 'Paranoid Tools', (Get-PtL notif_uac_declined), [System.Windows.Forms.ToolTipIcon]::Error)
+            }
         } else {
             $script:panicArmedAt = $now
             $notify.ShowBalloonTip(3000, 'Paranoid Tools', (Get-PtL notif_panic_arm), [System.Windows.Forms.ToolTipIcon]::Warning)
