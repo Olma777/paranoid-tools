@@ -52,11 +52,11 @@ the hash **before** installing. Environment variables: `VW_VERSION` (pin a speci
 > over `SHA256SUMS`: the snippet above and `install.sh` both verify it against a key
 > pinned in this repo, and the installer fails closed when it can't (see `SECURITY.md`).
 > Residual risk: one project key signs all five tools — see the ecosystem
-> [threat model](../THREAT-MODEL.md). Pin a version with `VW_VERSION=0.1.14` instead of `latest`
+> [threat model](../THREAT-MODEL.md). Pin a version with `VW_VERSION=0.1.16` instead of `latest`
 > for reproducibility.
 
 > The current public release is **v0.1.14** (signed, with `install.sh` + `SHA256SUMS`).
-> Pin it for reproducibility with `VW_VERSION=0.1.14` instead of `latest`.
+> Pin it for reproducibility with `VW_VERSION=0.1.16` instead of `latest`.
 
 ## Usage
 

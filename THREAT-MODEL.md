@@ -50,8 +50,10 @@ logins, Paranoid Tools for the secrets that are too valuable to live in either.
   on macOS, BitLocker VHDX on Windows). Closed, it's ciphertext; without the password
   there is nothing to find.
 - **Leftover drafts.** `ghostdraft` writes inside the open vault or a RAM disk on macOS —
-  no copy in your folders, editor history, or unencrypted temp files. (The Windows port
-  falls back to an on-disk temp file when no vault is open, and warns you it did.)
+  no copy in your folders, editor history, or unencrypted temp files. (On Windows the
+  default is the console: the draft is typed and displayed without a file existing at all.
+  A file appears only if you opt into `$EDITOR`, and then it is written inside the open
+  vault, or — with no vault open — into a temp file it warns you about.)
 - **Recoverable "deleted" files.** `vault reset` deletes the encrypted container, and
   with it the key material in its header, instead of pretending an overwrite worked on
   SSD. Read the promise precisely: the deletion itself is an ordinary file deletion, not

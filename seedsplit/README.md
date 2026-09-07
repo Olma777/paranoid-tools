@@ -61,7 +61,7 @@ curl -fsSL https://github.com/Di-kairos/paranoid-tools/releases/download/seedspl
 > snippet above and `install.sh` both verify it against a key pinned in this repo, and
 > the installer fails closed when it can't (see `SECURITY.md`). Residual risk: one
 > project key signs all five tools — see the ecosystem
-> [threat model](../THREAT-MODEL.md). Pin a specific version with `SEEDSPLIT_VERSION=0.5.5` instead of `latest` for
+> [threat model](../THREAT-MODEL.md). Pin a specific version with `SEEDSPLIT_VERSION=0.5.7` instead of `latest` for
 > reproducibility. Override the source with `SEEDSPLIT_BASE_URL` and the install path
 > with `SEEDSPLIT_DEST`.
 

@@ -49,7 +49,7 @@ curl -fsSL https://github.com/Di-kairos/paranoid-tools/releases/download/panic-v
 > этом репо; без проверки установщик отказывает (см. `SECURITY.md`). Остаточный риск —
 > один проектный ключ на все пять тулов, см.
 > [модель угроз](../THREAT-MODEL.ru.md). Зафиксируй конкретную
-> версию через `PANIC_VERSION=0.1.15` вместо `latest` для воспроизводимости.
+> версию через `PANIC_VERSION=0.1.17` вместо `latest` для воспроизводимости.
 
 ## Использование
 

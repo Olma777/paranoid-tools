@@ -96,7 +96,7 @@ bash install.sh
 > this repo, and the installer fails closed when it can't (see `SECURITY.md`). Another
 > channel is **Homebrew**, whose expected hash lives in the tap's git history rather than
 > alongside the download. Residual risk: one project key signs all five tools — see the
-> ecosystem [threat model](../THREAT-MODEL.md). Pin a specific version with `ST_VERSION=0.5.6` instead of
+> ecosystem [threat model](../THREAT-MODEL.md). Pin a specific version with `ST_VERSION=0.5.8` instead of
 > `latest` for reproducibility.
 
 ### Windows (beta)

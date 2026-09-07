@@ -25,12 +25,24 @@ and copy-on-write (ReFS) mean the old blocks may survive. Real protection is:
    never having been copied elsewhere — not on overwriting the disk. Strong, uncopied
    key destroyed → recovery is computationally infeasible (no absolute guarantee).
 
-## Install
+## Install (verify-then-run)
 
-One-liner (PowerShell):
+Piping an installer straight into `iex` runs code you have not read. Download it with the
+signed manifest, check it, read it, and only then run it:
 
 ```powershell
-irm https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.8/install.ps1 | iex
+$base = "https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.8"
+irm "$base/install.ps1"    -OutFile install.ps1
+irm "$base/SHA256SUMS"     -OutFile SHA256SUMS
+irm "$base/SHA256SUMS.sig" -OutFile SHA256SUMS.sig
+# authenticity: the Ed25519 signature over the manifest, against the key pinned in this repo
+'releases@paranoid-tools namespaces="file" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9DVd0vNOwa5hyr9gShaCWoNOVnUsrdHVO/WE0wCZkT' | Set-Content allowed_signers -Encoding ascii
+ssh-keygen -Y verify -f allowed_signers -I releases@paranoid-tools -n file -s SHA256SUMS.sig < SHA256SUMS
+# integrity: install.ps1's own hash must appear in that manifest
+(Get-FileHash install.ps1 -Algorithm SHA256).Hash.ToLower() -eq
+  ((Select-String -Path SHA256SUMS -Pattern 'install\.ps1$').Line -split '\s+')[0]
+# read it, then:
+pwsh -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
 The installer pulls `securetrash.ps1` **and `SHA256SUMS` from the release tag** (not a

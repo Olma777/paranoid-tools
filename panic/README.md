@@ -51,7 +51,7 @@ moving `main` branch) and verifies the hash **before** installing. Environment v
 > against a key pinned in this repo, and the installer fails closed when it can't (see
 > `SECURITY.md`). Residual risk: one project key signs all five tools — see the ecosystem
 > [threat model](../THREAT-MODEL.md). Pin a
-> specific version with `PANIC_VERSION=0.1.15` instead of `latest` for reproducibility.
+> specific version with `PANIC_VERSION=0.1.17` instead of `latest` for reproducibility.
 
 ## Usage
 

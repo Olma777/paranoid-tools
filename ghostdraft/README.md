@@ -56,7 +56,7 @@ the source for forks/tests).
 > [threat model](../THREAT-MODEL.md).
 
 > The current public release is **v0.1.18** (signed, with `install.sh` + `SHA256SUMS`).
-> Pin it for reproducibility with `GHOSTDRAFT_VERSION=0.1.18` instead of `latest`.
+> Pin it for reproducibility with `GHOSTDRAFT_VERSION=0.1.20` instead of `latest`.
 
 ## Usage
 

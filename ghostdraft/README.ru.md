@@ -55,7 +55,7 @@ curl -fsSL https://github.com/Di-kairos/paranoid-tools/releases/download/ghostdr
 > [модель угроз](../THREAT-MODEL.ru.md).
 
 > Текущий публичный релиз — **v0.1.18** (подписан, с `install.sh` + `SHA256SUMS`).
-> Для воспроизводимости фиксируй его: `GHOSTDRAFT_VERSION=0.1.18` вместо `latest`.
+> Для воспроизводимости фиксируй его: `GHOSTDRAFT_VERSION=0.1.20` вместо `latest`.
 
 ## Использование
 

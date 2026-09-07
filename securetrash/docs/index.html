@@ -292,20 +292,22 @@
       </div>
 
       <div class="install-block">
-        <h3>macOS — curl</h3>
+        <h3>macOS — from the clone</h3>
         <div class="copy-cmd">
-          <code><span class="accent">curl</span> -fsSL https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.7/install.sh | bash</code>
-          <button class="copy-btn" data-copy="curl -fsSL https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.7/install.sh | bash">copy</button>
+          <code><span class="accent">git</span> clone https://github.com/Di-kairos/paranoid-tools &amp;&amp; cd paranoid-tools &amp;&amp; bash install.sh</code>
+          <button class="copy-btn" data-copy="git clone https://github.com/Di-kairos/paranoid-tools &amp;&amp; cd paranoid-tools &amp;&amp; bash install.sh">copy</button>
         </div>
       </div>
 
       <div class="install-block">
-        <h3>Windows — PowerShell <span class="mono-dim" style="font-size:12px">(beta)</span></h3>
+        <h3>Windows — from the clone <span class="mono-dim" style="font-size:12px">(beta)</span></h3>
         <div class="copy-cmd">
-          <code><span class="accent">irm</span> https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.7/install.ps1 | iex</code>
-          <button class="copy-btn" data-copy="irm https://github.com/Di-kairos/paranoid-tools/releases/download/securetrash-v0.5.7/install.ps1 | iex">copy</button>
+          <code><span class="accent">git</span> clone https://github.com/Di-kairos/paranoid-tools; cd paranoid-tools; windows\install.cmd</code>
+          <button class="copy-btn" data-copy="git clone https://github.com/Di-kairos/paranoid-tools; cd paranoid-tools; windows\install.cmd">copy</button>
         </div>
       </div>
+
+      <p class="note">No piping an installer straight into a shell here, on purpose: that runs the script before you can read it. The path above lets you read what you are about to run, and the installer then verifies every artifact it pulls (Ed25519 signature over <code>SHA256SUMS</code>, then the checksum) before running anything. The commands carry no version number, so this page cannot go stale against a release.</p>
 
       <p class="note">macOS is stable. The Windows port passes its tests and CI but hasn't been validated on real BitLocker hardware yet — <a href="https://github.com/Di-kairos/paranoid-tools/issues/new?template=windows_hardware_test.yml">hardware testers wanted</a>.</p>
     </div>
