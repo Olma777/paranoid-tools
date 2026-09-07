@@ -139,6 +139,15 @@ but:
   locked — it warns loudly and tells you to lock it yourself. Overridable via
   `PANIC_CGSESSION` / `PANIC_OSASCRIPT`.
 - It does not pretend to "fully wipe in a second" — that would be a lie.
+- **"Instantly" is not promised; the run is measured.** The steps are external commands
+  (`hdiutil detach`, the screen lock) with no overall time guarantee: a busy volume, a
+  hung system command or a missing lock mechanism all take as long as they take. So
+  `panic now` reports the measured duration of two things on that run — the detach of the
+  images, and the lock step — and says separately whether the lock itself succeeded.
+- **Order is deliberate: volumes first, screen second.** A locked screen over a mounted
+  vault protects nothing from someone who takes the machine away; a closed vault survives
+  the lock being bypassed. The cost is that the screen stays visible while the detaching
+  runs — which is exactly the duration now printed.
 
 ## Windows (beta)
 

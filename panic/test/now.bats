@@ -102,3 +102,36 @@ run_now() { run env PATH="$STUBS:$PATH" PANIC_CGSESSION="$STUBS/cgsession" bash 
     bash -o pipefail -c '"'"$SCRIPT"'" now | head -n1'
   [ "$status" -eq 0 ]
 }
+
+# Аудит 2026-09-07, F09: «мгновенно» было намерением, а не измеренной характеристикой.
+# Отчёт теперь называет реальное время двух шагов этого запуска.
+@test "now reports the measured time of the detach and of the screen lock (F09)" {
+  STUB_MOUNTS="/Volumes/SecretVault" run_now
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ images\ detached\ after\ [0-9]+\.[0-9][0-9]\ s ]]
+  [[ "$output" =~ lock\ step\ finished\ after\ [0-9]+\.[0-9][0-9]\ s ]]
+}
+
+@test "the volumes are closed BEFORE the screen is locked, not after" {
+  # A locked screen over a mounted vault protects nothing from someone who takes the machine
+  # away; the order is a decision, so it is pinned by a test rather than left to chance.
+  STUB_MOUNTS="/Volumes/SecretVault" run_now
+  [ "$status" -eq 0 ]
+  detach_line="$(grep -n -- "detach -force /Volumes/SecretVault" "$VW_STUB_LOG" | head -1 | cut -d: -f1)"
+  lock_line="$(grep -n -- "cgsession" "$VW_STUB_LOG" | head -1 | cut -d: -f1)"
+  [ -n "$detach_line" ]
+  [ -n "$lock_line" ]
+  [ "$detach_line" -lt "$lock_line" ]
+}
+
+@test "the timing report survives a missing perl (whole seconds, never a crash)" {
+  # perl ships with macOS, but panic must not fail because a clock helper is absent.
+  fake="$(mktemp -d)"
+  for c in hdiutil pbcopy pkill mount; do ln -sf "$STUBS/$c" "$fake/$c" 2>/dev/null || true; done
+  run env PATH="$STUBS:/usr/bin:/bin" PANIC_CGSESSION="$STUBS/cgsession" \
+        STUB_MOUNTS="/Volumes/SecretVault" \
+        bash -c "perl() { return 127; }; export -f perl 2>/dev/null; bash '$SCRIPT' now"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"timing:"* ]]
+  rm -rf "$fake"
+}

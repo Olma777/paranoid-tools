@@ -53,7 +53,8 @@ function Stop-PnCommand { param([int]$Code = 1) throw [PnExit]::new($Code) }
 
 # --- i18n (panic string table; mirror of bash t()) ---
 function T {
-    param([string]$Key, [string]$A)
+    # $B is the second substitution slot — only now_timing needs two (volumes, screen lock).
+    param([string]$Key, [string]$A, [string]$B)
     $loc = $script:PN_LOCALE
     switch ("${loc}:${Key}") {
         'en:unknown_cmd'      { return "Unknown command: $A" }
@@ -96,6 +97,8 @@ function T {
         'ru:now_hard'         { return 'panic --hard: cloud-демоны убиты, recent items очищены.' }
         'en:now_report'       { return "panic: locked/dismounted $A encrypted volume(s), cleared clipboard." }
         'ru:now_report'       { return "panic: заперто/размонтировано шифр-томов: $A, буфер очищен." }
+        'en:now_timing'       { return "timing: volumes closed after $A s, lock step finished after $B s (measured on this run; the line below says whether the lock itself succeeded)." }
+        'ru:now_timing'       { return "время: тома закрыты за $A с, шаг блокировки завершён за $B с (замер этого запуска; удалась ли сама блокировка — в строке ниже)." }
         'en:lock_ok'          { return 'screen locked.' }
         'ru:lock_ok'          { return 'экран заперт.' }
         'en:lock_fail'        { return 'could NOT lock the screen — lock it now (Win+L).' }
@@ -313,6 +316,12 @@ function Invoke-PnNow {
     foreach ($a in $ArgList) { if ($a -eq '--hard') { $hard = $true } }
 
     $n = 0
+    # "Instantly" is a claim about time, and a claim about time is measured or dropped
+    # (audit 2026-09-07, F09). Volumes are closed BEFORE the screen is locked, deliberately:
+    # a locked screen over a mounted vault protects nothing from someone who takes the machine,
+    # while a closed vault survives the lock being bypassed. The price is the seconds the screen
+    # stays visible — so that duration is reported instead of promised away.
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     # Said BEFORE the attempt, not after: panic is read in a hurry, and the one thing the user
     # must not carry away is "0 volumes locked" read as "there was nothing to lock".
@@ -332,11 +341,14 @@ function Invoke-PnNow {
         catch { Write-PnWarn (T 'dismount_fail' ($vc -join ',')) }
     }
 
+    $tVols = $sw.Elapsed.TotalSeconds
+
     # 3. Clear the clipboard AND its history. Not a --hard extra: the current slot was never the
     # whole story - Win+V keeps every earlier copy, which is where a secret actually sits.
     Invoke-PnClearClipboard
     $histCleared = Invoke-PnClearClipboardHistory
     $locked = Invoke-PnLockScreen
+    $tLock = $sw.Elapsed.TotalSeconds
 
     # 5. --hard: kill cloud daemons + clear Recent items and jump lists.
     if ($hard) {
@@ -346,6 +358,7 @@ function Invoke-PnNow {
     }
 
     Write-PnInfo (T 'now_report' "$n")
+    Write-PnInfo (T 'now_timing' ('{0:0.00}' -f $tVols) ('{0:0.00}' -f $tLock))
     # The report says how many volumes were locked; unelevated that number is zero for a reason
     # the user has to see next to it, not twenty lines above.
     if (-not $elevated) { Write-PnWarn (T 'no_admin_lock') }

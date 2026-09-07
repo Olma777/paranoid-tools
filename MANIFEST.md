@@ -84,7 +84,7 @@ hide it under threat, distribute it, destroy it:
 | write without a trace | [`ghostdraft`](ghostdraft/) | view or draft sensitive text leaving no copy in the usual places |
 | store & destroy | [`securetrash`](securetrash/) | an encrypted vault, and honest deletion that refuses to lie about SSDs |
 | guard while open | [`vaultwatch`](vaultwatch/) | narrow the leak channels while a vault is mounted, restore on close |
-| hide under threat | [`panic`](panic/) | one command — everything off the screen, vaults locked, instantly |
+| hide under threat | [`panic`](panic/) | one command — vaults locked first, then everything off the screen; the run reports its own measured time |
 | distribute | [`seedsplit`](seedsplit/) | split a secret into Shamir shares — any T reconstruct, fewer reveal nothing |
 
 Each is a single auditable file — Bash on macOS, with a PowerShell port on Windows —

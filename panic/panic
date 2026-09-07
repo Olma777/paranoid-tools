@@ -264,6 +264,8 @@ EOF
     ru:now_hard) echo 'panic --hard: cloud-демоны убиты, recent items очищены.' ;;
     en:now_report) printf 'panic: detached %s disk image(s), cleared clipboard.' "$1" ;;
     ru:now_report) printf 'panic: размонтировано образов: %s, буфер очищен.' "$1" ;;
+    en:now_timing) printf 'timing: images detached after %s s, lock step finished after %s s (measured on this run; the line below says whether the lock itself succeeded).' "$1" "$2" ;;
+    ru:now_timing) printf 'время: образы отсоединены за %s с, шаг блокировки завершён за %s с (замер этого запуска; удалась ли сама блокировка — в строке ниже).' "$1" "$2" ;;
     en:lock_ok)    echo 'screen locked.' ;;
     ru:lock_ok)    echo 'экран заблокирован.' ;;
     en:lock_fail)  echo 'could NOT lock the screen — lock it now (Ctrl+Cmd+Q). Grant Accessibility to your terminal so panic can lock it next time.' ;;
@@ -328,6 +330,21 @@ _clear_recent_items() {
   rm -f "$PANIC_SFL_DIR"/*.sfl* 2>/dev/null || true
 }
 
+# Milliseconds since the epoch, for measuring what the panic actually took. "Instantly" is a
+# claim, and a claim about time has to be measured or dropped (audit 2026-09-07, F09). bash 3.2
+# (the macOS system bash) has no EPOCHREALTIME, so we use perl when it is there — it ships with
+# macOS — and fall back to whole seconds when it is not. Never fatal: a panic must not fail
+# because a clock helper is missing.
+_now_ms() {
+  if command -v perl >/dev/null 2>&1; then
+    perl -MTime::HiRes=time -e 'printf "%d", time*1000' 2>/dev/null && return 0
+  fi
+  printf '%d' "$(( $(date +%s) * 1000 ))"
+}
+
+# ms → seconds with 2 decimals, without bc/awk (integer arithmetic only).
+_fmt_s() { printf '%d.%02d' $(( $1 / 1000 )) $(( ($1 % 1000) / 10 )); }
+
 # Kill-switch: hide and lock. NO confirm — this is panic mode (speed matters more);
 # the guard against accidental runs is the explicit `now` verb. detach -force with open
 # files may corrupt data: a deliberate trade-off (see README "Scope & limitations").
@@ -338,7 +355,14 @@ cmd_now() {
     case "$a" in --hard) hard=1 ;; esac
   done
 
+  local t0 t_detach t_lock
+  t0="$(_now_ms)"
+
   # 1. Detach all mounted disk images (force — panic outranks open files).
+  # Volumes go FIRST, screen lock second, deliberately: a locked screen with the vault still
+  # mounted protects nothing from someone who takes the machine away, while a closed vault
+  # survives the lock being bypassed. The cost is that the screen stays visible for as long as
+  # the detaching takes — which is why that duration is now measured and reported.
   local n=0 mp
   while IFS= read -r mp; do
     [[ -n "$mp" ]] || continue
@@ -349,10 +373,13 @@ cmd_now() {
     fi
   done < <(_mounted_images)
 
+  t_detach=$(( $(_now_ms) - t0 ))
+
   # 2. Clear the clipboard. 3. Lock the screen (status kept for an honest report).
   pbcopy </dev/null >/dev/null 2>&1 || true
   local locked=0
   if _lock_screen; then locked=1; fi
+  t_lock=$(( $(_now_ms) - t0 ))
 
   # 4. --hard: kill cloud daemons + clear Recent items.
   if [[ "$hard" == "1" ]]; then
@@ -366,6 +393,7 @@ cmd_now() {
   # EPIPE instead of dying), and `|| true` guards against set -e on that return. This is cmd_now's last action.
   trap '' PIPE
   info "$(t now_report "$n")" || true
+  info "$(t now_timing "$(_fmt_s "$t_detach")" "$(_fmt_s "$t_lock")")" || true
   if [[ "$locked" == "1" ]]; then info "$(t lock_ok)" || true; else warn "$(t lock_fail)" || true; fi
   if [[ "$hard" == "1" ]]; then info "$(t now_hard)" || true; fi
 }
