@@ -290,6 +290,9 @@ Flags:
     'en:diskpart_failed'    = 'diskpart failed (exit {0}).'
     'ru:diskpart_failed'    = 'diskpart завершился с ошибкой (код {0}).'
 
+    'en:vault_letter_retry' = 'Drive letter {0}: was taken while attaching — retrying with another one.'
+    'ru:vault_letter_retry' = 'Буква диска {0}: оказалась занята во время подключения — пробуем другую.'
+
     'en:bad_size'           = 'Invalid size (must be a positive integer, MB): {0}'
     'ru:bad_size'           = 'Некорректный размер (нужно целое положительное число, МБ): {0}'
 
@@ -1287,10 +1290,26 @@ function Invoke-StVault {
                 Write-StWarn (T 'vault_vc_manual'); Stop-StCommand
             } elseif ($backend -eq 'bitlocker') {
                 Assert-StValidVaultPath -Path $vaultPath
-                $letter = Get-StFreeDriveLetter
-                Assert-StValidDriveLetter -DriveLetter $letter
-                # Attach VHDX...
-                Invoke-StDiskpart -Script "select vdisk file=`"$vaultPath`"`nattach vdisk`nselect partition 1`nassign letter=$letter"
+                # Attach VHDX. The letter is picked here but assigned by diskpart a moment
+                # later, so another process (a USB stick, a mapped share) can take it in
+                # between — and diskpart then fails with the vhdx ALREADY attached, leaving
+                # exactly the attached-locked residue the unlock failure below cleans up.
+                # Detach and take one more turn: by then the stolen letter reads as used and
+                # a different one is picked. Two turns, then the error stands.
+                $letter = $null
+                foreach ($attempt in 1, 2) {
+                    $cand = Get-StFreeDriveLetter
+                    Assert-StValidDriveLetter -DriveLetter $cand
+                    try {
+                        Invoke-StDiskpart -Script "select vdisk file=`"$vaultPath`"`nattach vdisk`nselect partition 1`nassign letter=$cand"
+                        $letter = $cand
+                        break
+                    } catch {
+                        try { Dismount-StVault -Path $vaultPath } catch { }
+                        if ($attempt -eq 2) { throw }
+                        Write-StWarn (T 'vault_letter_retry' $cand)
+                    }
+                }
                 $vol = "$($letter):"
                 # ...then unlock BitLocker and check the status (#9). A wrong password makes
                 # Unlock-BitLocker THROW (0x80310027) rather than return false, so the throw is

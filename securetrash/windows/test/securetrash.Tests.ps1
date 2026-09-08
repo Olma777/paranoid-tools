@@ -678,6 +678,37 @@ Describe 'vault open: BitLocker unlock + verify (#9, #10)' {
         { Invoke-StVault -VaultArgs @('open') 6>$null } | Should -Throw
         Should -Invoke Unlock-StBitLockerVault -Times 0 -Exactly
     }
+
+    # The letter is assigned by diskpart after it was picked, so it can be stolen in between.
+    It 'letter stolen while attaching -> detaches, takes another letter and opens' {
+        Mock Read-StVaultBackend { 'bitlocker' }
+        Mock Unlock-StBitLockerVault { $true }
+        Mock Dismount-StVault { }
+        $global:stDiskpartCalls = 0
+        Mock Invoke-StDiskpart {
+            $global:stDiskpartCalls++
+            if ($global:stDiskpartCalls -eq 1) { Stop-StCommand }   # the letter was taken
+        }
+
+        $out = (Invoke-StVault -VaultArgs @('open') 6>&1) -join "`n"
+        Remove-Item Variable:\stDiskpartCalls -Scope Global -ErrorAction SilentlyContinue
+        Should -Invoke Invoke-StDiskpart -Times 2 -Exactly
+        Should -Invoke Dismount-StVault -Times 1 -Exactly   # the half-attached vhdx is not left behind
+        Should -Invoke Unlock-StBitLockerVault -Times 1 -Exactly
+        $out | Should -Match 'Mounted'
+    }
+
+    It 'attach keeps failing -> honest error, detached, never unlocks' {
+        Mock Read-StVaultBackend { 'bitlocker' }
+        Mock Unlock-StBitLockerVault { $true }
+        Mock Dismount-StVault { }
+        Mock Invoke-StDiskpart { Stop-StCommand }
+
+        { Invoke-StVault -VaultArgs @('open') 6>$null } | Should -Throw
+        Should -Invoke Invoke-StDiskpart -Times 2 -Exactly
+        Should -Invoke Dismount-StVault -Times 2 -Exactly
+        Should -Invoke Unlock-StBitLockerVault -Times 0 -Exactly
+    }
 }
 
 Describe 'vault lifecycle hooks (F1)' {
