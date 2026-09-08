@@ -691,7 +691,7 @@ Describe 'vault open: BitLocker unlock + verify (#9, #10)' {
         }
 
         $out = (Invoke-StVault -VaultArgs @('open') 6>&1) -join "`n"
-        Remove-Item Variable:\stDiskpartCalls -Scope Global -ErrorAction SilentlyContinue
+        Remove-Variable -Name stDiskpartCalls -Scope Global -ErrorAction SilentlyContinue
         Should -Invoke Invoke-StDiskpart -Times 2 -Exactly
         Should -Invoke Dismount-StVault -Times 1 -Exactly   # the half-attached vhdx is not left behind
         Should -Invoke Unlock-StBitLockerVault -Times 1 -Exactly
